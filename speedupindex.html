@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <base target="_top">
+    <title>Speed Up Pickleball Court</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { background: #ffffff; min-height: 100%; width: 100%; overflow-x: hidden; }
+      body { font-family: Arial, sans-serif; color: #111111; max-width: 100vw; }
+      #bb-root { background: #ffffff; min-height: 100vh; width: 100%; max-width: 100%; overflow-x: hidden; }
+
+      .parking-banner { background: #111111; color: #ffffff; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; line-height: 1.5; }
+      .parking-banner-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+      .parking-icon { font-size: 20px; flex-shrink: 0; }
+      .parking-text strong { font-weight: 700; display: block; margin-bottom: 2px; font-size: 14px; }
+      .parking-dismiss { background: none; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px; color: #ffffff; font-size: 12px; padding: 4px 10px; cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+      .parking-dismiss:hover { background: rgba(255,255,255,0.15); }
+
+      .bb-header { background: #ffffff; border-bottom: 1px solid #d9d9d9; padding: 18px 24px 14px; text-align: center; position: relative; box-shadow: 0 1px 8px rgba(0,0,0,0.07); }
+      .bb-logo-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 6px; }
+      .bb-logo-img { height: 124px; width: auto; max-width: 100%; object-fit: contain; }
+      .bb-brand-name { font-family: 'EB Garamond', Georgia, serif; font-size: 26px; font-weight: 700; color: #111111; letter-spacing: 0.1em; line-height: 1.1; }
+      .bb-brand-sub { font-size: 11px; color: #6b6b6b; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 3px; }
+      .bb-header-divider { width: 64px; height: 1px; background: #FC5600; opacity: 1; margin: 10px auto 0; }
+
+      .bb-body { max-width: 1400px; margin: 0 auto; padding: 20px 16px 40px; width: 100%; }
+
+      .weather-bar { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 12px; padding: 10px 16px; margin-bottom: 14px; }
+      .weather-bar-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+      .weather-bar-label { font-size: 11px; font-weight: 700; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.1em; }
+      .weather-slots { display: flex; gap: 6px; flex-wrap: wrap; }
+      .weather-slot { display: flex; flex-direction: column; align-items: center; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 6px 10px; font-size: 11px; color: #111111; min-width: 64px; text-align: center; }
+      .weather-slot .wx-icon { font-size: 18px; margin-bottom: 2px; }
+      .weather-slot .wx-time { font-weight: 700; color: #111111; font-size: 11px; }
+      .weather-slot .wx-desc { color: #6b6b6b; font-size: 10px; }
+      .weather-slot .wx-pct  { font-size: 10px; color: #4a6a8a; font-weight: 700; }
+      .weather-slot.rain   { background: #eaf0f8; border-color: #a0b8d4; }
+      .weather-slot.cloudy { background: #f2f2f2; border-color: #d9d9d9; }
+      .weather-slot.clear  { background: #fff6ee; border-color: #ffd0b0; }
+      .weather-loading { font-size: 12px; color: #6b6b6b; font-style: italic; padding: 4px 0; }
+
+      .bb-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; justify-content: center; }
+      .bb-pill { padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+      .pill-avail  { background: #111111; color: #ffffff; }
+      .pill-booked { background: #8a8a8a; color: #ffffff; }
+      .pill-closed { background: #d9d9d9; color: #666666; }
+      .pill-sel    { background: #FC5600; color: #ffffff; border: 1.5px solid #111111; }
+
+      .booking-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #d9d9d9; }
+      .booking-tab { background: transparent; border: none; border-bottom: 3px solid transparent; padding: 10px 20px; font-size: 14px; font-weight: 700; color: #6b6b6b; cursor: pointer; margin-bottom: -2px; transition: all 0.15s; letter-spacing: 0.03em; }
+      .booking-tab:hover { color: #111111; }
+      .booking-tab.active { color: #111111; border-bottom-color: #FC5600; }
+      .booking-tab-panel { display: none; }
+      .booking-tab-panel.active { display: block; }
+
+      .bb-summary { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+      .bb-summary-label { font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+      .bb-summary-slots { font-size: 14px; color: #111111; font-weight: 600; }
+      .bb-total-label   { font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.1em; text-align: right; margin-bottom: 2px; }
+      .bb-total-amount  { font-family: 'EB Garamond', Georgia, serif; font-size: 26px; font-weight: 700; color: #FC5600; text-align: right; }
+
+      .bb-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+      .bb-btn-book  { background: #FC5600; color: #ffffff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.03em; transition: background 0.15s; }
+      .bb-btn-book:hover:not(:disabled) { background: #D94A00; }
+      .bb-btn-book:disabled { opacity: 0.45; cursor: not-allowed; }
+      .bb-btn-clear { background: transparent; color: #111111; border: 1px solid #111111; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+      .bb-btn-clear:hover:not(:disabled) { background: #ececec; }
+      .bb-btn-clear:disabled { opacity: 0.35; cursor: not-allowed; }
+      .bb-hint { font-size: 12px; color: #6b6b6b; }
+
+      /* BOARD */
+      .bb-board-outer { position: relative; }
+      .bb-time-col { position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none; }
+      .bb-board-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #d9d9d9; border-radius: 12px; background: #f5f5f5; max-width: 100%; }
+      .bb-table { border-collapse: collapse; width: 100%; min-width: 600px; }
+      .bb-table th, .bb-table td { border: 1px solid #e0e0e0; text-align: center; padding: 3px; vertical-align: middle; height: 60px; min-width: 80px; }
+      .bb-table th { background: #ebebeb; height: auto; }
+      .bb-th-time  { background: #e4e4e4 !important; font-weight: 700; font-size: 12px; color: #333333; min-width: 110px; }
+      .bb-th-day   { font-family: 'EB Garamond', Georgia, serif; font-size: 15px; font-weight: 700; color: #111111; }
+      .bb-th-court { font-size: 11px; color: #6b6b6b; margin-top: 2px; }
+
+      .bb-slot { border-radius: 8px; padding: 4px 3px; font-weight: 700; font-size: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 54px; width: 100%; overflow: hidden; user-select: none; transition: transform 0.12s, opacity 0.12s; box-sizing: border-box; }
+      .slot-avail    { background: #111111; color: #ffffff; cursor: pointer; }
+      .slot-avail:hover { opacity: 0.88; transform: scale(1.03); }
+      .slot-booked   { background: #8a8a8a; color: #ffffff; cursor: default; }
+      .slot-closed   { background: #d9d9d9; color: #777777; cursor: default; }
+      .slot-selected { background: #FC5600 !important; color: #ffffff !important; outline: 2px solid #111111; outline-offset: -2px; cursor: pointer; }
+      .slot-selected:hover { opacity: 0.9; transform: scale(1.02); }
+      .bb-slot-sub   { display: block; font-size: 10px; font-weight: 500; margin-top: 1px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+
+      .adv-container { max-width: 700px; margin: 0 auto; }
+      .adv-notice { background: #f5f5f5; border: 1px solid #FC5600; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: #333333; line-height: 1.7; }
+      .adv-notice strong { color: #111111; font-size: 15px; display: block; margin-bottom: 4px; }
+      .adv-date-card { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+      .adv-date-label { font-size: 12px; font-weight: 700; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; display: block; }
+      .adv-date-input { width: 100%; background: #ffffff; border: 1px solid #d9d9d9; border-radius: 8px; padding: 12px 14px; font-size: 16px; color: #111111; outline: none; font-family: Arial, sans-serif; transition: border-color 0.15s; cursor: pointer; }
+      .adv-date-input:focus { border-color: #FC5600; box-shadow: 0 0 0 2px rgba(252,86,0,0.2); }
+      .adv-check-btn { width: 100%; margin-top: 12px; background: #FC5600; color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s; }
+      .adv-check-btn:hover { background: #D94A00; }
+      .adv-check-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      .adv-slots-wrap { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+      .adv-slots-header { background: #111111; color: #ffffff; padding: 12px 18px; font-family: 'EB Garamond', Georgia, serif; font-size: 17px; font-weight: 700; }
+      .adv-court-section { padding: 14px 18px; border-bottom: 1px solid #e0e0e0; }
+      .adv-court-section:last-child { border-bottom: none; }
+      .adv-court-title { font-size: 13px; font-weight: 700; color: #111111; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .adv-slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+      .adv-slot { border-radius: 8px; padding: 10px 8px; font-size: 12px; font-weight: 700; text-align: center; cursor: pointer; transition: transform 0.12s, opacity 0.12s; height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      .adv-slot-avail    { background: #111111; color: #ffffff; }
+      .adv-slot-avail:hover { opacity: 0.88; transform: scale(1.02); }
+      .adv-slot-booked   { background: #8a8a8a; color: #ffffff; cursor: default; }
+      .adv-slot-selected { background: #FC5600 !important; color: #ffffff !important; outline: 2px solid #111111; outline-offset: -2px; }
+      .adv-slot-sub      { display: block; font-size: 10px; font-weight: 500; margin-top: 2px; opacity: 0.85; }
+      .adv-empty { text-align: center; padding: 24px; color: #6b6b6b; font-size: 14px; font-style: italic; }
+      .adv-loading { text-align: center; padding: 24px; color: #6b6b6b; font-size: 14px; }
+
+      .bb-status       { padding: 16px; border-radius: 10px; margin: 12px 0; background: #f5f5f5; border: 1px solid #d9d9d9; color: #333333; font-size: 14px; }
+      .bb-status-error { background: #f5e8e8; border-color: #c8a0a0; color: #b3261e; }
+      .bb-footer-note  { margin-top: 14px; font-size: 12px; color: #6b6b6b; text-align: center; }
+
+      .bb-lower { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+      .bb-map-card, .bb-info-card { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden; outline: none; }
+      .bb-card-header { padding: 12px 16px; background: #ebebeb; border-bottom: 1px solid #d9d9d9; }
+      .bb-card-title { font-family: 'EB Garamond', Georgia, serif; font-size: 16px; font-weight: 700; color: #111111; }
+      .bb-card-sub   { font-size: 12px; color: #6b6b6b; margin-top: 1px; }
+      .bb-map-frame  { width: 100%; height: 260px; border: none; display: block; }
+      .bb-map-address { padding: 10px 16px; font-size: 12px; color: #6b6b6b; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .bb-info-body { padding: 16px; }
+      .bb-info-row  { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+      .bb-info-row:last-child { border-bottom: none; }
+      .bb-info-icon  { font-size: 18px; flex-shrink: 0; padding-top: 1px; }
+      .bb-info-label { font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+      .bb-info-value { color: #111111; font-weight: 600; font-size: 14px; }
+      .bb-info-note  { font-size: 12px; color: #6b6b6b; margin-top: 2px; }
+      .bb-pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+      .bb-price-pill { background: #ffffff; border: 1px solid #d9d9d9; border-radius: 8px; padding: 8px; text-align: center; }
+      .bb-price-hrs  { font-size: 11px; color: #6b6b6b; }
+      .bb-price-amt  { font-family: 'EB Garamond', Georgia, serif; font-size: 18px; font-weight: 700; color: #FC5600; }
+      .bb-price-note { font-size: 10px; color: #9a9a9a; }
+
+      .bb-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; align-items: flex-start; justify-content: center; padding: 0; }
+      .bb-overlay.open { display: flex; }
+      .bb-modal { background: #ffffff; border: 1px solid #d9d9d9; border-radius: 0 0 20px 20px; padding: 20px 18px 28px; width: 100%; max-width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; }
+      @media (min-width: 769px) { .bb-overlay { align-items: center; padding: 16px; } .bb-modal { border-radius: 16px; max-width: 480px; padding: 28px 24px; max-height: 90vh; } }
+      .bb-modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: #6b6b6b; font-size: 20px; cursor: pointer; line-height: 1; }
+      .bb-modal-close:hover { color: #111111; }
+      .bb-modal-title { font-family: 'EB Garamond', Georgia, serif; font-size: 22px; font-weight: 700; color: #111111; margin-bottom: 4px; }
+      .bb-modal-sub   { font-size: 13px; color: #6b6b6b; margin-bottom: 18px; }
+      .bb-court-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+      .bb-court-badge  { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 8px; padding: 7px 12px; font-size: 13px; color: #111111; font-weight: 600; }
+      .bb-slot-summary { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: #333333; line-height: 1.8; }
+      .bb-slot-summary strong { display: block; font-size: 13px; color: #111111; font-weight: 700; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+      .bb-parking-notice { background: #fff1e8; border: 1px solid #ffc9a3; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #8a3a00; margin-bottom: 16px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+      .bb-field-group { margin-bottom: 14px; }
+      .bb-field-label { display: block; font-size: 11px; font-weight: 700; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+      .bb-field-label span { font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; }
+      .bb-input, .bb-select, .bb-textarea { width: 100%; background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 8px; color: #111111; font-size: 16px; padding: 10px 12px; outline: none; transition: border-color 0.15s; font-family: Arial, sans-serif; }
+      .bb-input:focus, .bb-select:focus, .bb-textarea:focus { border-color: #FC5600; box-shadow: 0 0 0 2px rgba(252,86,0,0.2); }
+      .bb-input::placeholder, .bb-textarea::placeholder { color: #9a9a9a; }
+      .bb-select option { background: #ffffff; }
+      .bb-textarea { resize: vertical; min-height: 72px; }
+      .bb-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .bb-modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+      .bb-confirm-btn { flex: 1; background: #FC5600; color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; transition: background 0.15s; }
+      .bb-confirm-btn:hover:not(:disabled) { background: #D94A00; }
+      .bb-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .bb-cancel-btn { background: transparent; color: #111111; border: 1px solid #111111; border-radius: 8px; padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+      .bb-cancel-btn:hover { background: #ececec; }
+      .bb-error-msg { background: #f5e8e8; border: 1px solid #c8a0a0; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #b3261e; margin-top: 12px; display: none; }
+
+      .bb-success { text-align: center; }
+      .bb-success-icon { width: 56px; height: 56px; background: #111111; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px; color: #ffffff; line-height: 1; }
+      .bb-success-title { font-family: 'EB Garamond', Georgia, serif; font-size: 24px; color: #111111; font-weight: 700; margin-bottom: 6px; }
+      .bb-success-sub   { font-size: 13px; color: #6b6b6b; margin-bottom: 4px; }
+      .bb-booking-id    { display: inline-block; background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 8px; padding: 8px 18px; font-size: 15px; font-weight: 700; color: #111111; letter-spacing: 0.08em; margin: 10px 0 14px; font-family: 'EB Garamond', Georgia, serif; }
+      .bb-gcash-box     { background: #f5f5f5; border: 1px solid #d9d9d9; border-radius: 12px; padding: 20px; margin-top: 16px; text-align: center; }
+      .bb-gcash-title   { font-family: 'EB Garamond', Georgia, serif; font-size: 18px; color: #111111; font-weight: 700; margin-bottom: 4px; }
+      .bb-gcash-sub     { font-size: 12px; color: #6b6b6b; margin-bottom: 10px; }
+      .bb-gcash-number  { font-size: 22px; font-weight: 700; color: #111111; letter-spacing: 0.06em; margin-bottom: 4px; font-family: 'EB Garamond', Georgia, serif; }
+      .bb-amount-due    { font-family: 'EB Garamond', Georgia, serif; font-size: 32px; font-weight: 700; color: #111111; margin: 6px 0 14px; }
+      .bb-gcash-qr      { width: 160px; height: 160px; border-radius: 8px; object-fit: contain; background: white; padding: 6px; display: block; margin: 0 auto 12px; }
+      .bb-gcash-note    { font-size: 12px; color: #6b6b6b; margin-top: 6px; }
+      .bb-done-btn      { width: 100%; background: #FC5600; color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 18px; letter-spacing: 0.04em; transition: background 0.15s; }
+      .bb-done-btn:hover { background: #D94A00; }
+      .bb-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #ffffff; border-radius: 50%; animation: bb-spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+      @keyframes bb-spin { to { transform: rotate(360deg); } }
+
+      /* MOBILE */
+      @media (max-width: 768px) {
+        .bb-body { padding: 10px 12px 40px; }
+        .bb-header { padding: 12px 14px 10px; }
+        .bb-brand-name { font-size: 20px; }
+        .bb-logo-img   { height: 100px; }
+        .bb-brand-sub  { font-size: 10px; }
+        .bb-board-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .bb-table { min-width: 0 !important; font-size: 11px; }
+        .bb-table th, .bb-table td { height: 52px !important; padding: 2px 1px !important; min-width: 0 !important; width: 60px !important; }
+        .bb-th-time { min-width: 72px !important; width: 72px !important; max-width: 72px !important; font-size: 10px !important; white-space: normal !important; line-height: 1.3 !important; background: #e4e4e4 !important; }
+        .bb-table tbody td:first-child { background: #e4e4e4 !important; font-weight: 700 !important; font-size: 10px !important; color: #333333 !important; }
+        .bb-th-day { font-size: 11px !important; }
+        .bb-th-court { font-size: 9px !important; }
+        .bb-slot { height: 48px !important; font-size: 10px !important; padding: 2px 1px !important; border-radius: 5px !important; width: 100% !important; }
+        .bb-slot-sub { font-size: 8px !important; max-width: 56px !important; }
+        .parking-text strong { font-size: 13px; }
+        .parking-banner { font-size: 12px; }
+        .bb-legend { justify-content: flex-start; gap: 6px; }
+        .bb-pill   { font-size: 11px; padding: 4px 10px; }
+        .weather-bar { padding: 8px 12px; }
+        .weather-slots { gap: 5px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .weather-slots::-webkit-scrollbar { display: none; }
+        .weather-slot { min-width: 58px; padding: 5px 7px; flex-shrink: 0; }
+        .weather-slot .wx-icon { font-size: 16px; }
+        .weather-slot .wx-time { font-size: 10px; }
+        .weather-slot .wx-pct  { font-size: 10px; }
+        .weather-slot .wx-desc { font-size: 9px; }
+        .booking-tabs { gap: 0; border-bottom-width: 1.5px; }
+        .booking-tab  { padding: 10px 14px; font-size: 13px; flex: 1; text-align: center; }
+        .bb-summary { padding: 12px 14px; flex-wrap: nowrap; }
+        .bb-summary-label { font-size: 10px; }
+        .bb-summary-slots { font-size: 13px; }
+        .bb-total-label   { font-size: 10px; }
+        .bb-total-amount  { font-size: 24px; }
+        .bb-toolbar { gap: 8px; flex-wrap: wrap; }
+        .bb-btn-book  { flex: 1; min-width: 0; padding: 12px 10px; font-size: 13px; }
+        .bb-btn-clear { padding: 12px 14px; font-size: 13px; }
+        .adv-container { max-width: 100%; }
+        .adv-notice { font-size: 12px; padding: 12px 14px; }
+        .adv-date-card { padding: 14px; }
+        .adv-slot-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .adv-slot { height: 52px; font-size: 12px; }
+        .adv-slots-header { font-size: 15px; padding: 10px 14px; }
+        .adv-court-section { padding: 12px 14px; }
+        .bb-overlay { padding: 0; align-items: flex-end; }
+        .bb-modal   { border-radius: 20px 20px 0 0; max-height: 92vh; padding: 20px 16px 28px; width: 100%; }
+        .bb-modal-title { font-size: 18px; }
+        .bb-modal-sub   { font-size: 12px; margin-bottom: 14px; }
+        .bb-input, .bb-select, .bb-textarea { font-size: 16px; padding: 12px; }
+        .bb-confirm-btn { padding: 14px; font-size: 15px; }
+        .bb-cancel-btn  { padding: 14px 16px; font-size: 14px; }
+        .bb-field-row   { grid-template-columns: 1fr; }
+        .bb-success-title { font-size: 20px; }
+        .bb-gcash-qr      { width: 150px; height: 150px; }
+        .bb-amount-due    { font-size: 28px; }
+        .bb-gcash-box     { padding: 16px 14px; }
+        .bb-done-btn      { padding: 14px; font-size: 15px; }
+        .bb-lower { grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
+        .bb-map-frame   { height: 220px; }
+        .bb-map-address { font-size: 12px; padding: 8px 12px; }
+        .bb-card-title  { font-size: 15px; }
+        .bb-info-row    { padding: 10px 0; }
+        .bb-info-value  { font-size: 13px; }
+        .bb-info-note   { font-size: 11px; }
+        .bb-pricing-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .bb-price-amt    { font-size: 16px; }
+        .bb-price-hrs    { font-size: 10px; }
+        .bb-footer-note { font-size: 11px; margin-top: 10px; }
+      }
+
+      @media (max-width: 390px) {
+        .bb-table th, .bb-table td { height: 46px !important; }
+        .bb-slot { height: 42px !important; font-size: 10px !important; }
+        .booking-tab { font-size: 12px; padding: 9px 10px; }
+        .adv-slot-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+    </style>
+  </head>
+  <body>
+  <div id="bb-root">
+
+    <div class="parking-banner" id="parkingBanner">
+      <div class="parking-banner-left">
+        <span class="parking-icon">&#127949;</span>
+        <div class="parking-text">
+          <strong>Parking Advisory</strong>
+          We highly recommend arriving by <strong>motorcycle</strong> — parking space is very limited and we cannot guarantee car parking availability.
+        </div>
+      </div>
+      <button class="parking-dismiss" onclick="dismissParking()">Got it &#x2715;</button>
+    </div>
+
+    <header class="bb-header">
+      <div class="bb-logo-row">
+        <img class="bb-logo-img" src="logo.png" alt="Speed Up Pickleball Court" />
+      </div>
+      <div class="bb-header-divider"></div>
+    </header>
+
+    <main class="bb-body">
+      <div class="bb-legend">
+        <span class="bb-pill pill-avail">Available</span>
+        <span class="bb-pill pill-booked">Booked</span>
+        <span class="bb-pill pill-closed">Closed</span>
+        <span class="bb-pill pill-sel">Selected</span>
+      </div>
+
+      <div class="weather-bar" id="weatherBar">
+        <div class="weather-bar-top">
+          <span class="weather-bar-label">Today's Forecast (Playing Hours)</span>
+        </div>
+        <div class="weather-slots" id="weatherSlots">
+          <span class="weather-loading">Loading forecast...</span>
+        </div>
+      </div>
+
+      <div class="booking-tabs">
+        <button class="booking-tab active" onclick="switchBookingTab('week', this)">&#128197; This Week</button>
+        <button class="booking-tab" onclick="switchBookingTab('advance', this)">&#128336; Advance Booking</button>
+      </div>
+
+      <div class="booking-tab-panel active" id="tab-week">
+        <div class="bb-summary">
+          <div>
+            <div class="bb-summary-label">Your selection</div>
+            <div class="bb-summary-slots" id="summarySlots">No slots selected yet</div>
+          </div>
+          <div>
+            <div class="bb-total-label">Total</div>
+            <div class="bb-total-amount" id="summaryTotal">&#8369;0</div>
+          </div>
+        </div>
+        <div class="bb-toolbar">
+          <button class="bb-btn-book" id="bookBtn" disabled>Book selected slots</button>
+          <button class="bb-btn-clear" id="clearBtn" disabled>Clear selection</button>
+        </div>
+        <div id="statusEl" class="bb-status">Loading availability...</div>
+        <div id="boardWrap" class="bb-board-wrap" style="display:none;">
+          <table class="bb-table" id="boardTable"></table>
+        </div>
+        <div id="swipeHint" style="margin-top:8px;padding:0 4px;display:none;">
+          <div style="background:#e0e0e0;border-radius:999px;height:6px;width:100%;overflow:hidden;">
+            <div id="swipeBar" style="background:#FC5600;height:6px;border-radius:999px;width:30%;transition:margin-left 0.2s;margin-left:0;"></div>
+          </div>
+        </div>
+        <p class="bb-footer-note">Tap green slots to select. Same day only. Consecutive hours per court required.</p>
+      </div>
+
+      <div class="booking-tab-panel" id="tab-advance">
+        <div class="adv-container">
+          <div class="adv-notice">
+            <strong>&#128336; Advance Booking</strong>
+            Reserve your court for any future date. Pick your date below to see what's available.
+            <br><br>
+            <strong>Note:</strong> Schedule is <strong>5:00 PM to 10:00 PM</strong> (Mon–Sun) and <strong>5:00 PM to 11:00 PM</strong> (Saturday).
+          </div>
+          <div class="adv-date-card">
+            <label class="adv-date-label" for="advDateInput">Select a date</label>
+            <input class="adv-date-input" type="date" id="advDateInput" />
+            <button class="adv-check-btn" id="advCheckBtn" onclick="checkAdvanceDate()">Check availability</button>
+          </div>
+          <div class="bb-summary" id="advSummary" style="display:none;">
+            <div>
+              <div class="bb-summary-label">Your selection</div>
+              <div class="bb-summary-slots" id="advSummarySlots">No slots selected yet</div>
+            </div>
+            <div>
+              <div class="bb-total-label">Total</div>
+              <div class="bb-total-amount" id="advSummaryTotal">&#8369;0</div>
+            </div>
+          </div>
+          <div class="bb-toolbar" id="advToolbar" style="display:none;">
+            <button class="bb-btn-book" id="advBookBtn" disabled>Book selected slots</button>
+            <button class="bb-btn-clear" id="advClearBtn" disabled>Clear selection</button>
+          </div>
+          <div id="advSlotsWrap"></div>
+        </div>
+      </div>
+
+      <div class="bb-lower">
+        <div class="bb-map-card">
+          <div class="bb-card-header">
+            <div class="bb-card-title">&#128205; Find Us</div>
+            <div class="bb-card-sub">Speed Up Pickleball Court</div>
+          </div>
+          <iframe class="bb-map-frame" src="https://maps.google.com/maps?q=10.373737559092874,123.92269169649647&output=embed&z=17" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div class="bb-map-address">
+            &#128205; 9WFG+MW4, Mandaue, 6014 Cebu &nbsp;&middot;&nbsp;
+            <a href="https://maps.google.com/?q=10.373737559092874,123.92269169649647" target="_blank" rel="noopener noreferrer" style="color:#111111;font-weight:600;text-decoration:none;">Open in Maps &#8599;</a>
+          </div>
+        </div>
+        <div class="bb-info-card">
+          <div class="bb-card-header">
+            <div class="bb-card-title">&#8505;&#65039; Court Info</div>
+            <div class="bb-card-sub">Schedule, pricing &amp; contact</div>
+          </div>
+          <div class="bb-info-body">
+            <div class="bb-info-row">
+              <span class="bb-info-icon">&#128340;</span>
+              <div>
+                <div class="bb-info-label">Operating Hours</div>
+                <div class="bb-info-value">Mon&ndash;Fri &amp; Sun: 5:00 PM &ndash; 10:00 PM</div>
+                <div class="bb-info-value">Saturday: 5:00 PM &ndash; 11:00 PM</div>
+              </div>
+            </div>
+            <div class="bb-info-row">
+              <span class="bb-info-icon">&#128222;</span>
+              <div>
+                <div class="bb-info-label">Contact</div>
+                <div class="bb-info-value">09288287172</div>
+                <div class="bb-info-note">GCash payments also accepted at this number</div>
+              </div>
+            </div>
+            <div class="bb-info-row">
+              <span class="bb-info-icon">&#127949;</span>
+              <div>
+                <div class="bb-info-label">Parking Advisory</div>
+                <div class="bb-info-value">Motorcycle recommended</div>
+                <div class="bb-info-note">Parking is very limited &mdash; we cannot guarantee car parking.</div>
+              </div>
+            </div>
+            <div class="bb-info-row">
+              <span class="bb-info-icon">&#128184;</span>
+              <div>
+                <div class="bb-info-label">Pricing (per court)</div>
+                <div class="bb-pricing-grid">
+                  <div class="bb-price-pill"><div class="bb-price-hrs">1 hour</div><div class="bb-price-amt">&#8369;400</div></div>
+                  <div class="bb-price-pill"><div class="bb-price-hrs">2 hours</div><div class="bb-price-amt">&#8369;700</div><div class="bb-price-note">&#8369;350/hr</div></div>
+                  <div class="bb-price-pill"><div class="bb-price-hrs">3+ hours</div><div class="bb-price-amt">&#8369;300</div><div class="bb-price-note">per hr</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="bb-overlay" id="overlay">
+      <div class="bb-modal">
+        <button class="bb-modal-close" id="modalCloseBtn" aria-label="Close">&#x2715;</button>
+        <div id="stepForm">
+          <div class="bb-modal-title">Confirm your booking</div>
+          <p class="bb-modal-sub">Fill in your details to reserve your slot.</p>
+          <div class="bb-court-badges" id="courtBadges"></div>
+          <div class="bb-slot-summary" id="slotSummary"><strong>Selected slots</strong></div>
+          <div class="bb-parking-notice">
+            <span>&#127949;</span>
+            <span><strong>Parking reminder:</strong> We highly recommend arriving by motorcycle. Car parking is very limited and cannot be guaranteed.</span>
+          </div>
+          <div class="bb-field-group">
+            <label class="bb-field-label" for="fName">Full name</label>
+            <input class="bb-input" type="text" id="fName" placeholder="Juan dela Cruz" autocomplete="name" />
+          </div>
+          <div class="bb-field-group">
+            <label class="bb-field-label" for="fPhone">Phone number</label>
+            <input class="bb-input" type="text" inputmode="numeric" id="fPhone" placeholder="09XXXXXXXXX" autocomplete="tel" />
+          </div>
+          <div class="bb-field-group">
+            <label class="bb-field-label" for="fEmail">Email address</label>
+            <input class="bb-input" type="email" id="fEmail" placeholder="juan@email.com" autocomplete="email" />
+          </div>
+          <div class="bb-field-group">
+            <label class="bb-field-label" for="fPayment">Payment method</label>
+            <select class="bb-select" id="fPayment">
+              <option value="" disabled selected>Select payment method</option>
+              <option value="GCash">GCash</option>
+              <option value="Cash">Cash on arrival</option>
+            </select>
+          </div>
+          <div class="bb-field-group">
+            <label class="bb-field-label" for="fNotes">Notes <span>(optional)</span></label>
+            <textarea class="bb-textarea" id="fNotes" placeholder="e.g. bringing 4 players, need extra balls..."></textarea>
+          </div>
+          <div class="bb-error-msg" id="formError"></div>
+          <div class="bb-modal-actions">
+            <button class="bb-cancel-btn" id="cancelBtn">Cancel</button>
+            <button class="bb-confirm-btn" id="confirmBtn">Confirm booking</button>
+          </div>
+        </div>
+        <div id="stepSuccess" style="display:none;">
+          <div class="bb-success">
+            <div class="bb-success-icon">&#10003;</div>
+            <div class="bb-success-title">Booking confirmed!</div>
+            <p class="bb-success-sub">Your booking ID</p>
+            <div class="bb-booking-id" id="successId">BB-XXXXXXXX-000</div>
+            <p class="bb-success-sub">A confirmation email will be sent to you shortly.</p>
+            <div class="bb-gcash-box" id="gcashPayBox">
+              <div class="bb-gcash-title">Pay now via GCash</div>
+              <p class="bb-gcash-sub">Send payment to</p>
+              <div class="bb-gcash-number" id="successGcash"></div>
+              <div class="bb-amount-due" id="successAmount">&#8369;0</div>
+              <img class="bb-gcash-qr" id="successQr" src="" alt="GCash QR code" />
+              <p class="bb-gcash-note">Include your Booking ID in the GCash message when sending.</p>
+              <p class="bb-gcash-note" id="successContact"></p>
+            </div>
+            <div class="bb-gcash-box" id="cashPayBox" style="display:none;">
+              <div class="bb-gcash-title">&#128181; Pay on Arrival</div>
+              <p class="bb-gcash-sub">Please prepare the exact amount</p>
+              <div class="bb-amount-due" id="successAmountCash">&#8369;0</div>
+              <p class="bb-gcash-note">Please settle your payment at the court before your session begins.</p>
+              <p class="bb-gcash-note" id="successContactCash"></p>
+            </div>
+            <button class="bb-done-btn" id="doneBtn">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const RATE_1H = 400, RATE_2H = 350, RATE_3H = 300;
+      const LAT = 10.3500, LON = 123.9167;
+      const REGULAR_START = 17, REGULAR_END = 22, SAT_END = 23;
+
+      var currentData      = null;
+      var selectedSlots    = [];
+      var advSelectedSlots = [];
+      var weatherData      = {};
+      var currentMode      = 'week';
+
+      // Environment detection
+      var IN_GAS_IFRAME = (window.innerWidth > 600 && screen.width < 600);
+      var IFRAME_W = IN_GAS_IFRAME ? window.innerWidth : 980;
+      var PHONE_W  = screen.width || 385;
+
+      function isMobile() {
+        if (IN_GAS_IFRAME) return PHONE_W < 600;
+        return window.innerWidth < 768;
+      }
+
+      // GAS API URL
+      var GAS_URL = 'https://script.google.com/macros/s/AKfycbzPRPNLzm3WSnuhLB59tMnw1nwIAMthyPkFnli8hm69O0HTwXQR-FzShkHJB3U-LtaKLA/exec';
+
+      function gasCall(fnName, params, onSuccess, onError) {
+        var url = GAS_URL + '?fn=' + encodeURIComponent(fnName);
+        if (params !== undefined && params !== null) {
+          url += '&params=' + encodeURIComponent(JSON.stringify(params));
+        }
+        fetch(url)
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data.error) { if (onError) onError({ message: data.error }); }
+            else { if (onSuccess) onSuccess(data); }
+          })
+          .catch(function(err) { if (onError) onError(err); });
+      }
+
+      function dismissParking() {
+        document.getElementById('parkingBanner').style.display = 'none';
+        try { sessionStorage.setItem('parkingDismissed','1'); } catch(e){}
+      }
+      (function(){ try { if(sessionStorage.getItem('parkingDismissed')) document.getElementById('parkingBanner').style.display='none'; } catch(e){} })();
+
+      function switchBookingTab(id, btn) {
+        document.querySelectorAll('.booking-tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.booking-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('tab-' + id).classList.add('active');
+        currentMode = id;
+      }
+
+      // ---- Weather: fetch with timeout, retry once, fall back gracefully ----
+      function fetchWeatherOnce() {
+        var controller = new AbortController();
+        var timeoutId  = setTimeout(function() { controller.abort(); }, 8000);
+        var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON + '&hourly=precipitation_probability,weathercode&timezone=Asia%2FManila&forecast_days=1';
+        return fetch(url, { signal: controller.signal })
+          .then(function(res) {
+            clearTimeout(timeoutId);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+          })
+          .finally(function() { clearTimeout(timeoutId); });
+      }
+
+      async function loadWeather() {
+        try {
+          var json = await fetchWeatherOnce();
+          if (!json.hourly) throw new Error('No hourly data');
+          json.hourly.time.forEach(function(t, i) { weatherData[t] = { precip: json.hourly.precipitation_probability[i], code: json.hourly.weathercode[i] }; });
+          renderWeatherBar();
+        } catch(e) {
+          setTimeout(async function() {
+            try {
+              var json2 = await fetchWeatherOnce();
+              if (!json2.hourly) throw new Error('No hourly data');
+              json2.hourly.time.forEach(function(t, i) { weatherData[t] = { precip: json2.hourly.precipitation_probability[i], code: json2.hourly.weathercode[i] }; });
+              renderWeatherBar();
+            } catch(e2) {
+              document.getElementById('weatherSlots').innerHTML = '<span class="weather-loading">Weather unavailable</span>';
+            }
+          }, 3000);
+        }
+      }
+
+      function getWx(code, precip) {
+        if (precip >= 60 || (code >= 61 && code <= 99)) return { icon: '&#127783;&#65039;', label: 'Rain likely',   cls: 'rain' };
+        if (precip >= 30 || (code >= 51 && code <= 60)) return { icon: '&#127746;',         label: 'Possible rain', cls: 'rain' };
+        if (code >= 1   && code <= 3)                   return { icon: '&#9925;',            label: 'Partly cloudy', cls: 'cloudy' };
+        return { icon: '&#9728;&#65039;', label: 'Clear', cls: 'clear' };
+      }
+
+      function renderWeatherBar() {
+        // Use Manila's local date, not the browser's UTC date, so keys line up
+        // with Open-Meteo's Asia/Manila-timezoned response.
+        var today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
+        var slots = [];
+        for (var h = REGULAR_START; h < SAT_END; h++) {
+          var pad = h < 10 ? '0' + h : '' + h;
+          var key = today + 'T' + pad + ':00';
+          var w   = weatherData[key];
+          if (!w) continue;
+          var wx  = getWx(w.code, w.precip);
+          var hr  = h > 12 ? (h - 12) + ':00 PM' : h + ':00 PM';
+          slots.push('<div class="weather-slot ' + wx.cls + '">' +
+            '<span class="wx-icon">' + wx.icon + '</span>' +
+            '<span class="wx-time">' + hr + '</span>' +
+            '<span class="wx-pct">' + w.precip + '%</span>' +
+            '<span class="wx-desc">' + wx.label + '</span>' +
+            '</div>');
+        }
+        document.getElementById('weatherSlots').innerHTML = slots.length > 0
+          ? slots.join('')
+          : '<span class="weather-loading">No forecast available.</span>';
+      }
+
+      function buildBoard(data) {
+        currentData = data;
+        document.getElementById('statusEl').style.display  = 'none';
+        document.getElementById('boardWrap').style.display = 'block';
+
+        buildUnifiedBoard(data);
+        document.getElementById('swipeHint').style.display = 'block';
+        (function() {
+          var wrap = document.getElementById('boardWrap');
+          wrap.onscroll = function() {
+            var bar = document.getElementById('swipeBar');
+            if (!bar) return;
+            var max = wrap.scrollWidth - wrap.clientWidth;
+            if (max <= 0) return;
+            var pct = wrap.scrollLeft / max;
+            bar.style.marginLeft = (pct * 70) + '%';
+          };
+        })();
+        attachHandlers();
+        updateUI();
+
+        // Court Info above Map on mobile
+        if (isMobile()) {
+          var lower   = document.querySelector('.bb-lower');
+          var mapCard = document.querySelector('.bb-map-card');
+          var infCard = document.querySelector('.bb-info-card');
+          if (lower && mapCard && infCard && mapCard.previousElementSibling !== infCard) {
+            lower.insertBefore(infCard, mapCard);
+          }
+        }
+      }
+
+      // Splits "5:00 PM - 6:00 PM" into "5:00 PM-" / "6:00 PM" on two forced lines,
+      // instead of letting the browser wrap wherever it finds room.
+      function formatTimeLabel(tl) {
+        var parts = tl.split(' - ');
+        if (parts.length !== 2) return esc(tl);
+        return '<span style="white-space:nowrap;">' + esc(parts[0]) + '-</span><br><span style="white-space:nowrap;">' + esc(parts[1]) + '</span>';
+      }
+
+      function buildUnifiedBoard(data) {
+        var wrap  = document.getElementById('boardWrap');
+        var table = document.getElementById('boardTable');
+        wrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #d9d9d9;border-radius:10px;background:#f5f5f5;width:100%;display:block;';
+
+        var TW, CW, fDay, fDate, fCourt, fTime, fSlot, fSub, slotH, rowH;
+        var numCourtCols = data.days.length * 2;
+
+        if (isMobile()) {
+          // Use the real viewport width for sizing. IFRAME_W's 980px fallback
+          // exists only for the Google Sites/Apps Script iframe embed case
+          // (where window.innerWidth misreports); on standalone GitHub Pages,
+          // window.innerWidth is already the true device width.
+          var effectiveW = IN_GAS_IFRAME ? IFRAME_W : window.innerWidth;
+          TW = Math.floor(effectiveW * 0.14);
+          CW = Math.floor((effectiveW - TW) / 6.1);
+
+          fDay   = Math.max(13, Math.floor(effectiveW * 0.020)) + 'px';
+          fDate  = Math.max(11, Math.floor(effectiveW * 0.015)) + 'px';
+          fCourt = Math.max(9,  Math.floor(effectiveW * 0.013)) + 'px';
+          fTime  = Math.max(10, Math.floor(effectiveW * 0.015)) + 'px';
+          fSlot  = Math.max(11, Math.floor(effectiveW * 0.017)) + 'px';
+          fSub   = Math.max(9,  Math.floor(effectiveW * 0.013)) + 'px';
+          slotH  = Math.max(44, Math.floor(effectiveW * 0.082)) + 'px';
+          rowH   = Math.max(48, Math.floor(effectiveW * 0.088)) + 'px';
+        } else {
+          // Desktop: fit the entire week (no horizontal scroll needed) by
+          // dividing the actual available width across all day/court columns,
+          // instead of using fixed pixel widths.
+          var containerW = wrap.clientWidth || window.innerWidth;
+          TW = 100;
+          CW = Math.max(60, Math.floor((containerW - TW - 20) / numCourtCols));
+          fDay = '15px'; fDate = '12px'; fCourt = '11px'; fTime = '13px';
+          fSlot = Math.max(10, Math.min(13, Math.floor(CW * 0.14))) + 'px';
+          fSub  = Math.max(9,  Math.min(11, Math.floor(CW * 0.11))) + 'px';
+          slotH = '54px'; rowH = '60px';
+        }
+
+        // Mobile keeps fixed pixel columns (intentional horizontal scroll).
+        // Desktop uses fluid percentage columns so the table exactly fills
+        // the container with no leftover gap on the right.
+        var colWidthCss = isMobile()
+          ? (CW + 'px')
+          : ('calc((100% - ' + TW + 'px) / ' + numCourtCols + ')');
+        var tableWidthCss = isMobile() ? 'width:max-content;' : 'width:100%;';
+
+        var colgroup = '<colgroup><col style="width:' + TW + 'px;min-width:' + TW + 'px;">' +
+          data.days.map(function() {
+            return '<col style="width:' + colWidthCss + ';"><col style="width:' + colWidthCss + ';">';
+          }).join('') + '</colgroup>';
+
+        var thead = '<thead><tr>' +
+          '<th style="width:' + TW + 'px;min-width:' + TW + 'px;position:sticky;left:0;z-index:5;background:#e4e4e4;font-size:' + fTime + ';padding:8px 2px;text-align:center;vertical-align:middle;">Time</th>' +
+          data.days.map(function(d) {
+            var parts = d.label.split(',');
+            var dayName = parts[0] ? parts[0].trim() : d.label;
+            var dayDate = parts[1] ? parts[1].trim() : '';
+            return '<th colspan="2" style="padding:8px 2px;text-align:center;border-bottom:1px solid #d9d9d9;">' +
+              '<div style="font-size:' + fDay + ';font-weight:700;color:#111111;">' + esc(dayName) + '</div>' +
+              '<div style="font-size:' + fDate + ';color:#6b6b6b;">' + esc(dayDate) + '</div>' +
+              '<div style="font-size:' + fCourt + ';color:#9a9a9a;margin-top:1px;">Court 1 &nbsp;&middot;&nbsp; Court 2</div>' +
+              '</th>';
+          }).join('') + '</tr></thead>';
+
+        var tbody = '<tbody>' + data.timeRows.map(function(tl) {
+          var cells = data.days.map(function(d) {
+            var c1 = findCell(data.grid, d.key, tl, 'Court 1');
+            var c2 = findCell(data.grid, d.key, tl, 'Court 2');
+            return renderMobileCell(c1, fSlot, fSub, slotH) + renderMobileCell(c2, fSlot, fSub, slotH);
+          }).join('');
+          return '<tr><td style="width:' + TW + 'px;min-width:' + TW + 'px;position:sticky;left:0;z-index:3;background:#e4e4e4;font-size:' + fTime + ';font-weight:700;color:#333333;text-align:center;padding:4px 3px;line-height:1.3;vertical-align:middle;height:' + rowH + ';">' + formatTimeLabel(tl) + '</td>' + cells + '</tr>';
+        }).join('') + '</tbody>';
+
+        table.style.cssText = 'border-collapse:separate;border-spacing:0;table-layout:fixed;' + tableWidthCss;
+        table.innerHTML = colgroup + thead + tbody;
+
+        // Scroll progress bar
+        var hint = document.getElementById('swipeHint');
+        if (hint) {
+          hint.style.display = 'block';
+          wrap.onscroll = function() {
+            var bar = document.getElementById('swipeBar');
+            if (!bar) return;
+            var max = wrap.scrollWidth - wrap.clientWidth;
+            if (max <= 0) return;
+            bar.style.marginLeft = (wrap.scrollLeft / max * 70) + '%';
+          };
+        }
+      }
+
+      function renderMobileCell(cell, fSlot, fSub, slotH) {
+        if (!fSlot) { fSlot = '17px'; fSub = '13px'; slotH = '64px'; }
+        var tdStyle = 'padding:3px 2px;text-align:center;vertical-align:middle;';
+        var divBase = 'border-radius:8px;height:' + slotH + ';display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;';
+        if (!cell || !cell.visible) {
+          return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#d9d9d9;font-size:' + fSub + ';color:#777777;font-weight:700;">Closed</div></td>';
+        }
+        if (cell.status === 'closed') {
+          return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#d9d9d9;font-size:' + fSub + ';color:#777777;font-weight:700;">Closed</div></td>';
+        }
+        if (cell.status === 'booked') {
+          return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#8a8a8a;font-size:' + fSlot + ';color:#ffffff;font-weight:700;"><span>Booked</span><span style="font-size:' + fSub + ';opacity:0.85;">' + esc(cell.label) + '</span></div></td>';
+        }
+        var sel     = selectedSlots.indexOf(cell.slotValue) > -1;
+        var bg      = sel ? '#FC5600' : '#111111';
+        var txt     = sel ? '#ffffff' : '#ffffff';
+        var outline = sel ? 'outline:2px solid #111111;outline-offset:-2px;' : '';
+        return '<td style="' + tdStyle + '"><div class="bb-slot ' + (sel ? 'slot-selected' : 'slot-avail') + '" style="' + divBase + 'background:' + bg + ';font-size:' + fSlot + ';color:' + txt + ';font-weight:700;cursor:pointer;' + outline + '" data-slot="' + esc(cell.slotValue) + '" data-day="' + esc(cell.dayKey) + '" data-court="' + esc(cell.court) + '" data-time="' + esc(cell.timeLabel) + '"><span>' + (sel ? 'Selected' : 'Available') + '</span><span style="font-size:' + fSub + ';font-weight:400;opacity:0.85;margin-top:3px;">' + (sel ? 'Tap to deselect' : 'Tap to select') + '</span></div></td>';
+      }
+
+      function findCell(grid, dayKey, timeLabel, court) {
+        for (var i = 0; i < grid.length; i++) {
+          if (grid[i].dayKey === dayKey && grid[i].timeLabel === timeLabel && grid[i].court === court) return grid[i];
+        }
+        return null;
+      }
+
+      function renderCell(cell) {
+        if (!cell || !cell.visible) return '<td><div class="bb-slot slot-closed">Closed</div></td>';
+        if (cell.status === 'closed') return '<td><div class="bb-slot slot-closed">Closed<span class="bb-slot-sub">' + esc(cell.label||'') + '</span></div></td>';
+        if (cell.status === 'booked') return '<td><div class="bb-slot slot-booked">Booked<span class="bb-slot-sub">' + esc(cell.label) + '</span></div></td>';
+        var sel = selectedSlots.indexOf(cell.slotValue) > -1;
+        return '<td><div class="bb-slot ' + (sel ? 'slot-selected' : 'slot-avail') + '" data-slot="' + esc(cell.slotValue) + '" data-day="' + esc(cell.dayKey) + '" data-court="' + esc(cell.court) + '" data-time="' + esc(cell.timeLabel) + '">' +
+          (sel ? 'Selected' : 'Available') +
+          '<span class="bb-slot-sub">' + (sel ? 'Tap to deselect' : 'Tap to select') + '</span>' +
+          '</div></td>';
+      }
+
+      function attachHandlers() {
+        var container = document.getElementById('boardTable');
+        if (!container) return;
+        container.querySelectorAll('.slot-avail, .slot-selected').forEach(function(el) {
+          el.addEventListener('click', function() { toggleSlot(el.dataset.slot, el.dataset.day, el.dataset.court); });
+        });
+      }
+
+      function toggleSlot(slot, day, court) {
+        if (!currentData) return;
+        var idx = selectedSlots.indexOf(slot);
+        if (idx > -1) { selectedSlots.splice(idx, 1); buildBoard(currentData); return; }
+        var cells = getSelectedCells();
+        if (cells.length > 0 && cells[0].dayKey !== day) { alert('You can only select slots from the same day.'); return; }
+        var next = getCellsFromSlots(selectedSlots.concat([slot]));
+        if (!validByCourt(next)) { alert('For each court, please select consecutive time slots only.'); return; }
+        selectedSlots.push(slot);
+        buildBoard(currentData);
+      }
+
+      function getSelectedCells() { return getCellsFromSlots(selectedSlots); }
+
+      function getCellsFromSlots(slots) {
+        if (!currentData) return [];
+        return currentData.grid.filter(function(c) { return slots.indexOf(c.slotValue) > -1; })
+          .sort(function(a,b) { return startHour(a.timeLabel) - startHour(b.timeLabel); });
+      }
+
+      function startHour(tl) {
+        var m = tl.split(' - ')[0].trim().match(/^(\d+):00\s(AM|PM)$/);
+        if (!m) return 0;
+        var h = Number(m[1]);
+        if (m[2]==='PM' && h!==12) h+=12;
+        if (m[2]==='AM' && h===12) h=0;
+        return h;
+      }
+
+      function validByCourt(cells) {
+        var byCourt = {};
+        cells.forEach(function(c) { if(!byCourt[c.court]) byCourt[c.court]=[]; byCourt[c.court].push(c); });
+        return Object.values(byCourt).every(function(g) {
+          var s = g.slice().sort(function(a,b){ return startHour(a.timeLabel)-startHour(b.timeLabel); });
+          for(var i=1;i<s.length;i++) if(startHour(s[i].timeLabel)!==startHour(s[i-1].timeLabel)+1) return false;
+          return true;
+        });
+      }
+
+      function courtTotal(h) {
+        if(h<=0) return 0; if(h===1) return RATE_1H; if(h===2) return RATE_2H*2; return RATE_3H*h;
+      }
+
+      function combinedTotal(c1, c2) { return courtTotal(c1 + c2); }
+
+      function updateUI() {
+        var bookBtn  = document.getElementById('bookBtn');
+        var clearBtn = document.getElementById('clearBtn');
+        var sumSlots = document.getElementById('summarySlots');
+        var sumTotal = document.getElementById('summaryTotal');
+        if(selectedSlots.length===0) {
+          bookBtn.disabled=true; clearBtn.disabled=true;
+          sumSlots.textContent='No slots selected yet';
+          sumTotal.innerHTML='&#8369;0';
+          return;
+        }
+        var cells=getSelectedCells();
+        var c1=cells.filter(function(c){return c.court==='Court 1';}).length;
+        var c2=cells.filter(function(c){return c.court==='Court 2';}).length;
+        var total=combinedTotal(c1,c2);
+        bookBtn.disabled=false; clearBtn.disabled=false;
+        sumSlots.textContent=selectedSlots.length+' slot(s) selected \u2014 Court 1: '+c1+'h, Court 2: '+c2+'h';
+        sumTotal.innerHTML='&#8369;'+total;
+      }
+
+      function clearSelection() { selectedSlots=[]; if(currentData) buildBoard(currentData); }
+
+      function checkAdvanceDate() {
+        var input = document.getElementById('advDateInput').value;
+        if (!input) { alert('Please select a date.'); return; }
+        var selected = new Date(input + 'T00:00:00');
+        var today    = new Date(); today.setHours(0,0,0,0);
+        if (selected <= today) { alert('Please select a future date for advance booking.'); return; }
+        var btn = document.getElementById('advCheckBtn');
+        btn.disabled = true;
+        btn.textContent = 'Checking...';
+        document.getElementById('advSlotsWrap').innerHTML = '<div style="text-align:center;padding:24px;color:#6b6b6b;font-size:14px;"><span class="bb-spinner" style="border-top-color:#111111;border-color:rgba(17,17,17,0.2);"></span> Loading availability...</div>';
+        advSelectedSlots = [];
+        updateAdvUI();
+        gasCall('getAdvanceAvailability', input, function(data) {
+          btn.disabled = false;
+          btn.textContent = 'Check availability';
+          renderAdvSlots(data, input, selected);
+        }, function(err) {
+          btn.disabled = false;
+          btn.textContent = 'Check availability';
+          document.getElementById('advSlotsWrap').innerHTML = '<div class="bb-status bb-status-error">Error: ' + esc(err.message) + '</div>';
+        });
+      }
+
+      function renderAdvSlots(data, dateStr, dateObj) {
+        var wrap   = document.getElementById('advSlotsWrap');
+        var dayNum = dateObj.getDay();
+        var endHr  = dayNum === 6 ? SAT_END : REGULAR_END;
+        var courts = ['Court 1', 'Court 2'];
+        var dateLabel = dateObj.toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+        var html = '<div class="adv-slots-wrap"><div class="adv-slots-header">' + esc(dateLabel) + '</div>';
+        courts.forEach(function(court) {
+          html += '<div class="adv-court-section"><div class="adv-court-title">' + court + '</div><div class="adv-slot-grid">';
+          for (var h = REGULAR_START; h < endHr; h++) {
+            var startLabel = (h > 12 ? (h-12) : h) + ':00 ' + (h >= 12 ? 'PM' : 'AM');
+            var endH       = h + 1;
+            var endLabel   = (endH > 12 ? (endH-12) : endH) + ':00 ' + (endH >= 12 ? 'PM' : 'AM');
+            var timeLabel  = startLabel + ' - ' + endLabel;
+            var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            var slotDate = months[dateObj.getMonth()] + ' ' + dateObj.getDate() + ', ' + dateObj.getFullYear();
+            var slotValue = slotDate + ' | ' + timeLabel + ' | ' + court;
+            var isBooked = data.bookedSlots && data.bookedSlots.indexOf(slotValue) > -1;
+            var isSel    = advSelectedSlots.indexOf(slotValue) > -1;
+            if (isBooked) {
+              var bookerName = data.slotNames && data.slotNames[slotValue] ? data.slotNames[slotValue] : '';
+              html += '<div class="adv-slot adv-slot-booked">Booked<span class="adv-slot-sub">' + esc(bookerName) + '</span></div>';
+            } else {
+              html += '<div class="adv-slot ' + (isSel ? 'adv-slot-selected' : 'adv-slot-avail') + '" data-slot="' + esc(slotValue) + '" data-court="' + esc(court) + '" data-time="' + esc(timeLabel) + '" onclick="toggleAdvSlot(this)">' +
+                (isSel ? 'Selected' : 'Available') +
+                '<span class="adv-slot-sub">' + esc(timeLabel) + '</span></div>';
+            }
+          }
+          html += '</div></div>';
+        });
+        html += '</div>';
+        wrap.innerHTML = html;
+        document.getElementById('advSummary').style.display  = 'flex';
+        document.getElementById('advToolbar').style.display  = 'flex';
+        updateAdvUI();
+      }
+
+      function toggleAdvSlot(el) {
+        var slot  = el.dataset.slot;
+        var court = el.dataset.court;
+        var idx   = advSelectedSlots.indexOf(slot);
+        if (idx > -1) {
+          advSelectedSlots.splice(idx, 1);
+          el.className = 'adv-slot adv-slot-avail';
+          el.innerHTML = 'Available<span class="adv-slot-sub">' + esc(el.dataset.time) + '</span>';
+        } else {
+          var courtSlots = advSelectedSlots.filter(function(s) { return s.indexOf('| ' + court) > -1; });
+          if (courtSlots.length > 0) {
+            var testSet = courtSlots.concat([slot]);
+            var hours   = testSet.map(function(s) {
+              var m = s.split('|')[1].trim().match(/^(\d+):00\s(AM|PM)/);
+              if (!m) return 0;
+              var h = Number(m[1]);
+              if (m[2]==='PM'&&h!==12) h+=12;
+              if (m[2]==='AM'&&h===12) h=0;
+              return h;
+            }).sort(function(a,b){return a-b;});
+            for (var i=1;i<hours.length;i++) {
+              if (hours[i] !== hours[i-1]+1) { alert('For each court, please select consecutive time slots only.'); return; }
+            }
+          }
+          advSelectedSlots.push(slot);
+          el.className = 'adv-slot adv-slot-selected';
+          el.innerHTML = 'Selected<span class="adv-slot-sub">Tap to deselect</span>';
+        }
+        updateAdvUI();
+      }
+
+      function updateAdvUI() {
+        var bookBtn  = document.getElementById('advBookBtn');
+        var clearBtn = document.getElementById('advClearBtn');
+        var sumSlots = document.getElementById('advSummarySlots');
+        var sumTotal = document.getElementById('advSummaryTotal');
+        if (advSelectedSlots.length === 0) {
+          bookBtn.disabled=true; clearBtn.disabled=true;
+          sumSlots.textContent='No slots selected yet';
+          sumTotal.innerHTML='&#8369;0';
+          return;
+        }
+        var c1    = advSelectedSlots.filter(function(s){return s.indexOf('| Court 1')>-1;}).length;
+        var c2    = advSelectedSlots.filter(function(s){return s.indexOf('| Court 2')>-1;}).length;
+        var total = combinedTotal(c1, c2);
+        bookBtn.disabled=false; clearBtn.disabled=false;
+        sumSlots.textContent=advSelectedSlots.length+' slot(s) selected \u2014 Court 1: '+c1+'h, Court 2: '+c2+'h';
+        sumTotal.innerHTML='&#8369;'+total;
+      }
+
+      function clearAdvSelection() {
+        advSelectedSlots = [];
+        updateAdvUI();
+        var dateInput = document.getElementById('advDateInput').value;
+        if (dateInput) {
+          var dateObj = new Date(dateInput + 'T00:00:00');
+          gasCall('getAdvanceAvailability', dateInput, function(data){ renderAdvSlots(data, dateInput, dateObj); }, function(){});
+        }
+      }
+
+      function openModal(slots) {
+        if (!slots || !slots.length) return;
+        var c1    = slots.filter(function(s){return s.indexOf('| Court 1')>-1;}).length;
+        var c2    = slots.filter(function(s){return s.indexOf('| Court 2')>-1;}).length;
+        var total = combinedTotal(c1, c2);
+        var badges = '';
+        if(c1>0) badges+='<div class="bb-court-badge">Court 1 &mdash; '+c1+' hr'+(c1>1?'s':'')+'</div>';
+        if(c2>0) badges+='<div class="bb-court-badge">Court 2 &mdash; '+c2+' hr'+(c2>1?'s':'')+'</div>';
+        document.getElementById('courtBadges').innerHTML = badges;
+        var summary = '<strong>Selected time slots</strong>';
+        slots.forEach(function(s) { summary += s + '<br>'; });
+        summary += '<br><strong style="color:#111111;">Total: &#8369;'+total+'</strong>';
+        document.getElementById('slotSummary').innerHTML = summary;
+        document.getElementById('fName').value='';
+        document.getElementById('fPhone').value='';
+        document.getElementById('fEmail').value='';
+        document.getElementById('fPayment').value='';
+        document.getElementById('fNotes').value='';
+        document.getElementById('formError').style.display='none';
+        document.getElementById('stepForm').style.display='block';
+        document.getElementById('stepSuccess').style.display='none';
+        document.getElementById('confirmBtn').disabled=false;
+        document.getElementById('confirmBtn').innerHTML='Confirm booking';
+        document.getElementById('overlay').classList.add('open');
+        document.getElementById('fName').focus();
+      }
+
+      function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+      function showSuccess(r) {
+        document.getElementById('stepForm').style.display='none';
+        document.getElementById('stepSuccess').style.display='block';
+        document.getElementById('successId').textContent=r.bookingId;
+        var isGcash = r.paymentMethod === 'GCash';
+        document.getElementById('gcashPayBox').style.display = isGcash ? 'block' : 'none';
+        document.getElementById('cashPayBox').style.display  = isGcash ? 'none'  : 'block';
+        if (isGcash) {
+          document.getElementById('successGcash').textContent = r.gcashNumber;
+          document.getElementById('successAmount').innerHTML  = '&#8369;'+r.total;
+          document.getElementById('successQr').src            = r.qrImageUrl;
+          document.getElementById('successContact').textContent = 'Questions? Call or text: '+r.contactNumber;
+        } else {
+          document.getElementById('successAmountCash').innerHTML  = '&#8369;'+r.total;
+          document.getElementById('successContactCash').textContent = 'Questions? Call or text: '+r.contactNumber;
+        }
+      }
+
+      function showError(msg) { var el=document.getElementById('formError'); el.textContent=msg; el.style.display='block'; }
+
+      function submitBooking() {
+        var name    = document.getElementById('fName').value.trim();
+        var phone   = document.getElementById('fPhone').value.trim();
+        var email   = document.getElementById('fEmail').value.trim();
+        var payment = document.getElementById('fPayment').value;
+        var notes   = document.getElementById('fNotes').value.trim();
+        var slots   = currentMode === 'advance' ? advSelectedSlots : selectedSlots;
+        document.getElementById('formError').style.display='none';
+        if(!name)                       { showError('Please enter your full name.');         return; }
+        if(!phone)                      { showError('Please enter your phone number.');      return; }
+        if(!email||email.indexOf('@')<0){ showError('Please enter a valid email address.');  return; }
+        if(!payment)                    { showError('Please select a payment method.');      return; }
+        var btn=document.getElementById('confirmBtn');
+        btn.disabled=true;
+        btn.innerHTML='<span class="bb-spinner"></span>Booking...';
+        gasCall('submitBooking', { name:name, phone:phone, email:email, paymentMethod:payment, notes:notes, slots:slots },
+          function(r){
+            if(r.success){
+              showSuccess(r);
+              if(currentMode==='advance'){
+                advSelectedSlots=[];
+                updateAdvUI();
+                var advDate = document.getElementById('advDateInput').value;
+                if (advDate) {
+                  var advDateObj = new Date(advDate + 'T00:00:00');
+                  gasCall('getAdvanceAvailability', advDate, function(d){ renderAdvSlots(d, advDate, advDateObj); }, function(){});
+                }
+              } else { clearSelection(); }
+              loadBoard();
+            } else {
+              btn.disabled=false; btn.innerHTML='Confirm booking';
+              showError(r.error||'Something went wrong. Please try again.');
+            }
+          },
+          function(){
+            btn.disabled=false; btn.innerHTML='Confirm booking';
+            showError('Connection error. Please try again.');
+          });
+      }
+
+      function loadBoard() {
+        gasCall('getAvailabilityGridData', null,
+          function(data){
+            try { buildBoard(data); }
+            catch(err) {
+              var s=document.getElementById('statusEl');
+              s.className='bb-status bb-status-error';
+              s.style.display='block';
+              s.textContent='Display error: '+err.message;
+            }
+          },
+          function(err){
+            var s=document.getElementById('statusEl');
+            s.className='bb-status bb-status-error';
+            s.style.display='block';
+            s.textContent='Error: '+(err&&err.message||'Could not load availability');
+          });
+      }
+
+      function esc(t){ var d=document.createElement('div'); d.textContent=t||''; return d.innerHTML; }
+
+      (function(){
+        var tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        var y = tomorrow.getFullYear();
+        var m = ('0'+(tomorrow.getMonth()+1)).slice(-2);
+        var d = ('0'+tomorrow.getDate()).slice(-2);
+        document.getElementById('advDateInput').min = y+'-'+m+'-'+d;
+      })();
+
+      document.getElementById('bookBtn').addEventListener('click', function(){ openModal(selectedSlots); });
+      document.getElementById('clearBtn').addEventListener('click', clearSelection);
+      document.getElementById('advBookBtn').addEventListener('click', function(){ openModal(advSelectedSlots); });
+      document.getElementById('advClearBtn').addEventListener('click', clearAdvSelection);
+      document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+      document.getElementById('cancelBtn').addEventListener('click', closeModal);
+      document.getElementById('confirmBtn').addEventListener('click', function() {
+        if (isMobile()) { document.activeElement.blur(); setTimeout(submitBooking, 100); }
+        else { submitBooking(); }
+      });
+      document.getElementById('doneBtn').addEventListener('click', closeModal);
+      document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+      document.getElementById('advDateInput').addEventListener('keydown', function(e){ if(e.key==='Enter') checkAdvanceDate(); });
+
+      // Mobile init
+      (function() {
+        if (!isMobile()) return;
+        document.body.style.width = '100%';
+        document.body.style.maxWidth = '100%';
+        var root = document.getElementById('bb-root');
+        root.style.width = '100%';
+        root.style.maxWidth = '100%';
+        var weatherSlots = document.getElementById('weatherSlots');
+        if (weatherSlots) { weatherSlots.style.flexWrap = 'nowrap'; weatherSlots.style.overflowX = 'auto'; }
+        var legend = document.querySelector('.bb-legend');
+        if (legend) legend.style.flexWrap = 'nowrap';
+        var tabsContainer = document.querySelector('.booking-tabs');
+        if (tabsContainer) tabsContainer.style.flexWrap = 'nowrap';
+        var lower   = document.querySelector('.bb-lower');
+        var mapCard = document.querySelector('.bb-map-card');
+        var infCard = document.querySelector('.bb-info-card');
+        if (lower) lower.style.gridTemplateColumns = '1fr';
+        if (lower && mapCard && infCard) lower.insertBefore(infCard, mapCard);
+        document.querySelectorAll('.booking-tab').forEach(function(t) { t.style.flex = '1'; t.style.textAlign = 'center'; });
+        var bookBtn = document.getElementById('bookBtn');
+        if (bookBtn) bookBtn.style.flex = '1';
+      })();
+
+      loadBoard();
+      loadWeather();
+      setInterval(loadBoard, 5000);
+    </script>
+  </div>
+  </body>
+</html>
