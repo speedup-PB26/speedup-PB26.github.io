@@ -203,6 +203,12 @@
       .cmb-mini { background:#111; color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:700; padding:6px 10px; cursor:pointer; margin-top:6px; }
       .bb-copy { background:#111; color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:700; padding:6px 12px; cursor:pointer; margin-bottom:6px; }
       @media (max-width: 640px) { .cmb-row { grid-template-columns:1fr; } }
+      .court-tabs { display:flex; gap:8px; margin:0 0 12px; }
+      .court-tab { flex:1; border:2px solid #111111; background:#ffffff; color:#111111; border-radius:12px; padding:10px 6px; font-size:15px; font-weight:700; cursor:pointer; text-align:center; font-family:inherit; }
+      .court-tab small { display:block; font-weight:400; font-size:11px; color:#6b6b6b; margin-top:2px; }
+      .court-tab.on { background:#111111; color:#ffffff; }
+      .court-tab.on small { color:#d0d0d0; }
+      .court-tab .dot { display:inline-block; min-width:18px; padding:1px 6px; margin-left:6px; border-radius:99px; background:#FC5600; color:#fff; font-size:11px; }
       .bb-hold { background:#fff3ea; border:1px solid #FC5600; color:#111; border-radius:8px; padding:10px 12px; font-size:13px; margin:12px 0 4px; text-align:center; }
       .bb-hold strong { color:#D94A00; }
       .bb-proof { text-align:left; margin-top:16px; padding-top:14px; border-top:1px dashed #d9d9d9; }
@@ -358,6 +364,7 @@
           <button class="bb-btn-book" id="bookBtn" disabled>Book selected slots</button>
           <button class="bb-btn-clear" id="clearBtn" disabled>Clear selection</button>
         </div>
+        <div class="court-tabs" id="courtTabs" style="display:none;"></div>
         <div id="statusEl" class="bb-status">Loading availability...</div>
         <div id="boardWrap" class="bb-board-wrap" style="display:none;">
           <table class="bb-table" id="boardTable"></table>
@@ -423,8 +430,7 @@
               <span class="bb-info-icon">&#128340;</span>
               <div>
                 <div class="bb-info-label">Operating Hours</div>
-                <div class="bb-info-value">Mon&ndash;Fri &amp; Sun: 5:00 PM &ndash; 10:00 PM</div>
-                <div class="bb-info-value">Saturday: 5:00 PM &ndash; 11:00 PM</div>
+                <div id="hoursInfo"><div class="bb-info-value">Loading&hellip;</div></div>
               </div>
             </div>
             <div class="bb-info-row">
@@ -447,10 +453,9 @@
               <span class="bb-info-icon">&#128184;</span>
               <div>
                 <div class="bb-info-label">Pricing (per court)</div>
-                <div class="bb-pricing-grid">
-                  <div class="bb-price-pill"><div class="bb-price-hrs">1 hour</div><div class="bb-price-amt">&#8369;400</div></div>
-                  <div class="bb-price-pill"><div class="bb-price-hrs">2 hours</div><div class="bb-price-amt">&#8369;700</div><div class="bb-price-note">&#8369;350/hr</div></div>
-                  <div class="bb-price-pill"><div class="bb-price-hrs">3+ hours</div><div class="bb-price-amt">&#8369;300</div><div class="bb-price-note">per hr</div></div>
+                <div class="bb-pricing-grid" style="grid-template-columns:1fr 1fr;">
+                  <div class="bb-price-pill"><div class="bb-price-hrs">6 AM &ndash; 4 PM</div><div class="bb-price-amt">&#8369;400</div><div class="bb-price-note">per hour</div></div>
+                  <div class="bb-price-pill"><div class="bb-price-hrs">4 PM &ndash; 6 AM</div><div class="bb-price-amt">&#8369;450</div><div class="bb-price-note">per hour</div></div>
                 </div>
               </div>
             </div>
@@ -564,9 +569,21 @@
     </div>
 
     <script>
-      const RATE_1H = 400, RATE_2H = 350, RATE_3H = 300;
+      var RATES = { day: 400, night: 450, dayFrom: 6, nightFrom: 16 };
       const LAT = 10.3500, LON = 123.9167;
-      const REGULAR_START = 17, REGULAR_END = 22, SAT_END = 23;
+      var currentCourt = null;
+      var advOpen = 16;
+      function fmtHr12(h) { h = ((h % 24) + 24) % 24; return (h % 12 || 12) + ':00 ' + (h >= 12 ? 'PM' : 'AM'); }
+      function rateFor(h) { h = ((h % 24) + 24) % 24; return (h >= RATES.dayFrom && h < RATES.nightFrom) ? RATES.day : RATES.night; }
+      function slotHour(slot) {
+        var m = String(slot).split('|')[1]; if (!m) return 0; m = m.trim().split('-')[0].trim().match(/^(\d+):00\s(AM|PM)$/); if (!m) return 0;
+        var h = Number(m[1]); if (m[2] === 'PM' && h !== 12) h += 12; if (m[2] === 'AM' && h === 12) h = 0; return h;
+      }
+      function slotsTotal(slots) { return slots.reduce(function(sum, s) { return sum + rateFor(slotHour(s)); }, 0); }
+      function courtCounts(slots) {
+        var out = {}; slots.forEach(function(s) { var c = String(s).split('|')[2]; c = c ? c.trim() : '?'; out[c] = (out[c] || 0) + 1; }); return out;
+      }
+      function countsText(slots) { var c = courtCounts(slots); return Object.keys(c).sort().map(function(k) { return k + ': ' + c[k] + 'h'; }).join(', '); }
 
       var currentData      = null;
       var selectedSlots    = [];
@@ -663,13 +680,15 @@
         // with Open-Meteo's Asia/Manila-timezoned response.
         var today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
         var slots = [];
-        for (var h = REGULAR_START; h < SAT_END; h++) {
+        var wOpen = 16, wClose = 22;
+        if (currentData && currentData.days && currentData.days[0]) { wOpen = currentData.days[0].open; wClose = Math.min(24, currentData.days[0].close); }
+        for (var h = wOpen; h < wClose; h++) {
           var pad = h < 10 ? '0' + h : '' + h;
           var key = today + 'T' + pad + ':00';
           var w   = weatherData[key];
           if (!w) continue;
           var wx  = getWx(w.code, w.precip);
-          var hr  = h > 12 ? (h - 12) + ':00 PM' : h + ':00 PM';
+          var hr  = fmtHr12(h);
           slots.push('<div class="weather-slot ' + wx.cls + '">' +
             '<span class="wx-icon">' + wx.icon + '</span>' +
             '<span class="wx-time">' + hr + '</span>' +
@@ -687,6 +706,9 @@
         document.getElementById('statusEl').style.display  = 'none';
         document.getElementById('boardWrap').style.display = 'block';
 
+        if (data.rates) RATES = data.rates;
+        renderCourtTabs(data);
+        renderHoursInfo(data);
         buildUnifiedBoard(data);
         document.getElementById('swipeHint').style.display = 'block';
         (function() {
@@ -722,13 +744,43 @@
         return '<span style="white-space:nowrap;">' + esc(parts[0]) + '-</span><br><span style="white-space:nowrap;">' + esc(parts[1]) + '</span>';
       }
 
+      function renderCourtTabs(data) {
+        var box = document.getElementById('courtTabs');
+        var courts = (data.courts || []).filter(function(c) { return c.enabled; });
+        if (!courts.length) { box.style.display = 'none'; return; }
+        if (!currentCourt || !courts.some(function(c) { return c.name === currentCourt; })) currentCourt = courts[0].name;
+        var counts = courtCounts(selectedSlots);
+        box.style.display = courts.length > 1 ? 'flex' : 'none';
+        box.innerHTML = courts.map(function(c) {
+          var n = counts[c.name] || 0;
+          return '<button type="button" class="court-tab' + (c.name === currentCourt ? ' on' : '') + '" data-court="' + esc(c.name) + '">' + esc(c.name) +
+            (n ? '<span class="dot">' + n + '</span>' : '') + '<small>' + (c.name === currentCourt ? 'Viewing' : 'Tap to view') + '</small></button>';
+        }).join('');
+        box.querySelectorAll('.court-tab').forEach(function(b) {
+          b.addEventListener('click', function() { currentCourt = b.dataset.court; buildBoard(currentData); });
+        });
+      }
+
+      function renderHoursInfo(data) {
+        var el = document.getElementById('hoursInfo'); if (!el || !data.weekly) return;
+        var names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], order = [1,2,3,4,5,6,0], groups = [];
+        order.forEach(function(d) {
+          var w = data.weekly[d], key = w.open + '-' + w.close, last = groups[groups.length - 1];
+          if (last && last.key === key) last.days.push(d); else groups.push({ key: key, days: [d], w: w });
+        });
+        el.innerHTML = groups.map(function(g) {
+          var lbl = g.days.length === 1 ? names[g.days[0]] : names[g.days[0]] + '&ndash;' + names[g.days[g.days.length - 1]];
+          return '<div class="bb-info-value">' + lbl + ': ' + fmtHr12(g.w.open) + ' &ndash; ' + fmtHr12(g.w.close) + (g.w.close > 24 ? ' (next day)' : '') + '</div>';
+        }).join('');
+      }
+
       function buildUnifiedBoard(data) {
         var wrap  = document.getElementById('boardWrap');
         var table = document.getElementById('boardTable');
         wrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #d9d9d9;border-radius:10px;background:#f5f5f5;width:100%;display:block;';
 
         var TW, CW, fDay, fDate, fCourt, fTime, fSlot, fSub, slotH, rowH;
-        var numCourtCols = data.days.length * 2;
+        var numCourtCols = data.days.length;
 
         if (isMobile()) {
           // Use the real viewport width for sizing. IFRAME_W's 980px fallback
@@ -737,7 +789,7 @@
           // window.innerWidth is already the true device width.
           var effectiveW = IN_GAS_IFRAME ? IFRAME_W : window.innerWidth;
           TW = Math.floor(effectiveW * 0.14);
-          CW = Math.floor((effectiveW - TW) / 6.1);
+          CW = Math.floor((effectiveW - TW) / 3.6);
 
           fDay   = Math.max(13, Math.floor(effectiveW * 0.020)) + 'px';
           fDate  = Math.max(11, Math.floor(effectiveW * 0.015)) + 'px';
@@ -770,7 +822,7 @@
 
         var colgroup = '<colgroup><col style="width:' + TW + 'px;min-width:' + TW + 'px;">' +
           data.days.map(function() {
-            return '<col style="width:' + colWidthCss + ';"><col style="width:' + colWidthCss + ';">';
+            return '<col style="width:' + colWidthCss + ';">';
           }).join('') + '</colgroup>';
 
         var thead = '<thead><tr>' +
@@ -779,20 +831,19 @@
             var parts = d.label.split(',');
             var dayName = parts[0] ? parts[0].trim() : d.label;
             var dayDate = parts[1] ? parts[1].trim() : '';
-            return '<th colspan="2" style="padding:8px 2px;text-align:center;border-bottom:1px solid #d9d9d9;">' +
+            return '<th style="padding:8px 2px;text-align:center;border-bottom:1px solid #d9d9d9;">' +
               '<div style="font-size:' + fDay + ';font-weight:700;color:#111111;">' + esc(dayName) + '</div>' +
               '<div style="font-size:' + fDate + ';color:#6b6b6b;">' + esc(dayDate) + '</div>' +
-              '<div style="font-size:' + fCourt + ';color:#9a9a9a;margin-top:1px;">Court 1 &nbsp;&middot;&nbsp; Court 2</div>' +
               '</th>';
           }).join('') + '</tr></thead>';
 
-        var tbody = '<tbody>' + data.timeRows.map(function(tl) {
+        var tbody = '<tbody>' + data.timeRows.map(function(tl, ri) {
+          var late = (data.firstHour + ri) >= 24;
           var cells = data.days.map(function(d) {
-            var c1 = findCell(data.grid, d.key, tl, 'Court 1');
-            var c2 = findCell(data.grid, d.key, tl, 'Court 2');
-            return renderMobileCell(c1, fSlot, fSub, slotH) + renderMobileCell(c2, fSlot, fSub, slotH);
+            var c1 = findCell(data.grid, d.key, tl, currentCourt);
+            return renderMobileCell(c1, fSlot, fSub, slotH);
           }).join('');
-          return '<tr><td style="width:' + TW + 'px;min-width:' + TW + 'px;position:sticky;left:0;z-index:3;background:#e4e4e4;font-size:' + fTime + ';font-weight:700;color:#333333;text-align:center;padding:4px 3px;line-height:1.3;vertical-align:middle;height:' + rowH + ';">' + formatTimeLabel(tl) + '</td>' + cells + '</tr>';
+          return '<tr><td style="width:' + TW + 'px;min-width:' + TW + 'px;position:sticky;left:0;z-index:3;background:#e4e4e4;font-size:' + fTime + ';font-weight:700;color:#333333;text-align:center;padding:4px 3px;line-height:1.3;vertical-align:middle;height:' + rowH + ';">' + (late ? '<span style="color:#FC5600;">&#9790;</span> ' : '') + formatTimeLabel(tl) + '</td>' + cells + '</tr>';
         }).join('') + '</tbody>';
 
         table.style.cssText = 'border-collapse:separate;border-spacing:0;table-layout:fixed;' + tableWidthCss;
@@ -817,10 +868,10 @@
         var tdStyle = 'padding:3px 2px;text-align:center;vertical-align:middle;';
         var divBase = 'border-radius:8px;height:' + slotH + ';display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;';
         if (!cell || !cell.visible) {
-          return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#d9d9d9;font-size:' + fSub + ';color:#777777;font-weight:700;">Closed</div></td>';
+          return '<td style="' + tdStyle + '"><div style="' + divBase + 'color:#c4c4c4;font-size:' + fSlot + ';">&mdash;</div></td>';
         }
         if (cell.status === 'closed') {
-          return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#d9d9d9;font-size:' + fSub + ';color:#777777;font-weight:700;">Closed</div></td>';
+          return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:repeating-linear-gradient(45deg,#e3e3e3,#e3e3e3 6px,#d6d6d6 6px,#d6d6d6 12px);font-size:' + fSub + ';color:#777777;font-weight:700;">Closed</div></td>';
         }
         if (cell.status === 'held') {
           return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#f2b37c;border:2px dashed #FC5600;box-sizing:border-box;font-size:' + fSlot + ';color:#111111;font-weight:700;"><span>Held</span><span style="font-size:' + fSub + ';opacity:0.85;">Awaiting payment</span></div></td>';
@@ -832,7 +883,7 @@
         var bg      = sel ? '#FC5600' : '#111111';
         var txt     = sel ? '#ffffff' : '#ffffff';
         var outline = sel ? 'outline:2px solid #111111;outline-offset:-2px;' : '';
-        return '<td style="' + tdStyle + '"><div class="bb-slot ' + (sel ? 'slot-selected' : 'slot-avail') + '" style="' + divBase + 'background:' + bg + ';font-size:' + fSlot + ';color:' + txt + ';font-weight:700;cursor:pointer;' + outline + '" data-slot="' + esc(cell.slotValue) + '" data-day="' + esc(cell.dayKey) + '" data-court="' + esc(cell.court) + '" data-time="' + esc(cell.timeLabel) + '"><span>' + (sel ? 'Selected' : 'Available') + '</span><span style="font-size:' + fSub + ';font-weight:400;opacity:0.85;margin-top:3px;">' + (sel ? 'Tap to deselect' : 'Tap to select') + '</span></div></td>';
+        return '<td style="' + tdStyle + '"><div class="bb-slot ' + (sel ? 'slot-selected' : 'slot-avail') + '" style="' + divBase + 'background:' + bg + ';font-size:' + fSlot + ';color:' + txt + ';font-weight:700;cursor:pointer;' + outline + '" data-slot="' + esc(cell.slotValue) + '" data-day="' + esc(cell.dayKey) + '" data-court="' + esc(cell.court) + '" data-time="' + esc(cell.timeLabel) + '"><span>' + (sel ? 'Selected' : 'Available') + '</span><span style="font-size:' + fSub + ';font-weight:400;opacity:0.85;margin-top:3px;">&#8369;' + (cell.price || '') + '</span></div></td>';
       }
 
       function findCell(grid, dayKey, timeLabel, court) {
@@ -843,7 +894,7 @@
       }
 
       function renderCell(cell) {
-        if (!cell || !cell.visible) return '<td><div class="bb-slot slot-closed">Closed</div></td>';
+        if (!cell || !cell.visible) return '<td><div class="bb-slot">&mdash;</div></td>';
         if (cell.status === 'closed') return '<td><div class="bb-slot slot-closed">Closed<span class="bb-slot-sub">' + esc(cell.label||'') + '</span></div></td>';
         if (cell.status === 'held') return '<td><div class="bb-slot slot-held">Held<span class="bb-slot-sub">Awaiting payment</span></div></td>';
         if (cell.status === 'booked') return '<td><div class="bb-slot slot-booked">Booked<span class="bb-slot-sub">' + esc(cell.label) + '</span></div></td>';
@@ -879,7 +930,7 @@
       function getCellsFromSlots(slots) {
         if (!currentData) return [];
         return currentData.grid.filter(function(c) { return slots.indexOf(c.slotValue) > -1; })
-          .sort(function(a,b) { return startHour(a.timeLabel) - startHour(b.timeLabel); });
+          .sort(function(a,b) { return a.hour - b.hour; });
       }
 
       function startHour(tl) {
@@ -895,17 +946,11 @@
         var byCourt = {};
         cells.forEach(function(c) { if(!byCourt[c.court]) byCourt[c.court]=[]; byCourt[c.court].push(c); });
         return Object.values(byCourt).every(function(g) {
-          var s = g.slice().sort(function(a,b){ return startHour(a.timeLabel)-startHour(b.timeLabel); });
-          for(var i=1;i<s.length;i++) if(startHour(s[i].timeLabel)!==startHour(s[i-1].timeLabel)+1) return false;
+          var s = g.slice().sort(function(a,b){ return a.hour-b.hour; });
+          for(var i=1;i<s.length;i++) if(s[i].hour!==s[i-1].hour+1) return false;
           return true;
         });
       }
-
-      function courtTotal(h) {
-        if(h<=0) return 0; if(h===1) return RATE_1H; if(h===2) return RATE_2H*2; return RATE_3H*h;
-      }
-
-      function combinedTotal(c1, c2) { return courtTotal(c1 + c2); }
 
       function updateUI() {
         var bookBtn  = document.getElementById('bookBtn');
@@ -918,12 +963,9 @@
           sumTotal.innerHTML='&#8369;0';
           return;
         }
-        var cells=getSelectedCells();
-        var c1=cells.filter(function(c){return c.court==='Court 1';}).length;
-        var c2=cells.filter(function(c){return c.court==='Court 2';}).length;
-        var total=combinedTotal(c1,c2);
+        var total=slotsTotal(selectedSlots);
         bookBtn.disabled=false; clearBtn.disabled=false;
-        sumSlots.textContent=selectedSlots.length+' slot(s) selected \u2014 Court 1: '+c1+'h, Court 2: '+c2+'h';
+        sumSlots.textContent=selectedSlots.length+' slot(s) selected \u2014 '+countsText(selectedSlots);
         sumTotal.innerHTML='&#8369;'+total;
       }
 
@@ -954,17 +996,18 @@
 
       function renderAdvSlots(data, dateStr, dateObj) {
         var wrap   = document.getElementById('advSlotsWrap');
-        var dayNum = dateObj.getDay();
-        var endHr  = dayNum === 6 ? SAT_END : REGULAR_END;
-        var courts = ['Court 1', 'Court 2'];
+        if (data.rates) RATES = data.rates;
+        var openHr = data.open != null ? data.open : 16;
+        var endHr  = data.close != null ? data.close : 22;
+        advOpen = openHr;
+        var courts = data.courts && data.courts.length ? data.courts : ['Court 1', 'Court 2', 'Court 3'];
         var dateLabel = dateObj.toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
         var html = '<div class="adv-slots-wrap"><div class="adv-slots-header">' + esc(dateLabel) + '</div>';
         courts.forEach(function(court) {
           html += '<div class="adv-court-section"><div class="adv-court-title">' + court + '</div><div class="adv-slot-grid">';
-          for (var h = REGULAR_START; h < endHr; h++) {
-            var startLabel = (h > 12 ? (h-12) : h) + ':00 ' + (h >= 12 ? 'PM' : 'AM');
-            var endH       = h + 1;
-            var endLabel   = (endH > 12 ? (endH-12) : endH) + ':00 ' + (endH >= 12 ? 'PM' : 'AM');
+          for (var h = openHr; h < endHr; h++) {
+            var startLabel = fmtHr12(h);
+            var endLabel   = fmtHr12(h + 1);
             var timeLabel  = startLabel + ' - ' + endLabel;
             var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             var slotDate = months[dateObj.getMonth()] + ' ' + dateObj.getDate() + ', ' + dateObj.getFullYear();
@@ -980,7 +1023,7 @@
             } else {
               html += '<div class="adv-slot ' + (isSel ? 'adv-slot-selected' : 'adv-slot-avail') + '" data-slot="' + esc(slotValue) + '" data-court="' + esc(court) + '" data-time="' + esc(timeLabel) + '" onclick="toggleAdvSlot(this)">' +
                 (isSel ? 'Selected' : 'Available') +
-                '<span class="adv-slot-sub">' + esc(timeLabel) + '</span></div>';
+                '<span class="adv-slot-sub">' + esc(timeLabel) + ' &middot; &#8369;' + rateFor(h) + '</span></div>';
             }
           }
           html += '</div></div>';
@@ -999,18 +1042,14 @@
         if (idx > -1) {
           advSelectedSlots.splice(idx, 1);
           el.className = 'adv-slot adv-slot-avail';
-          el.innerHTML = 'Available<span class="adv-slot-sub">' + esc(el.dataset.time) + '</span>';
+          el.innerHTML = 'Available<span class="adv-slot-sub">' + esc(el.dataset.time) + ' &middot; &#8369;' + rateFor(slotHour(slot)) + '</span>';
         } else {
           var courtSlots = advSelectedSlots.filter(function(s) { return s.indexOf('| ' + court) > -1; });
           if (courtSlots.length > 0) {
             var testSet = courtSlots.concat([slot]);
             var hours   = testSet.map(function(s) {
-              var m = s.split('|')[1].trim().match(/^(\d+):00\s(AM|PM)/);
-              if (!m) return 0;
-              var h = Number(m[1]);
-              if (m[2]==='PM'&&h!==12) h+=12;
-              if (m[2]==='AM'&&h===12) h=0;
-              return h;
+              var h = slotHour(s);
+              return h < advOpen ? h + 24 : h;
             }).sort(function(a,b){return a-b;});
             for (var i=1;i<hours.length;i++) {
               if (hours[i] !== hours[i-1]+1) { alert('For each court, please select consecutive time slots only.'); return; }
@@ -1034,11 +1073,9 @@
           sumTotal.innerHTML='&#8369;0';
           return;
         }
-        var c1    = advSelectedSlots.filter(function(s){return s.indexOf('| Court 1')>-1;}).length;
-        var c2    = advSelectedSlots.filter(function(s){return s.indexOf('| Court 2')>-1;}).length;
-        var total = combinedTotal(c1, c2);
+        var total = slotsTotal(advSelectedSlots);
         bookBtn.disabled=false; clearBtn.disabled=false;
-        sumSlots.textContent=advSelectedSlots.length+' slot(s) selected \u2014 Court 1: '+c1+'h, Court 2: '+c2+'h';
+        sumSlots.textContent=advSelectedSlots.length+' slot(s) selected \u2014 '+countsText(advSelectedSlots);
         sumTotal.innerHTML='&#8369;'+total;
       }
 
@@ -1054,12 +1091,10 @@
 
       function openModal(slots) {
         if (!slots || !slots.length) return;
-        var c1    = slots.filter(function(s){return s.indexOf('| Court 1')>-1;}).length;
-        var c2    = slots.filter(function(s){return s.indexOf('| Court 2')>-1;}).length;
-        var total = combinedTotal(c1, c2);
+        var total = slotsTotal(slots);
         var badges = '';
-        if(c1>0) badges+='<div class="bb-court-badge">Court 1 &mdash; '+c1+' hr'+(c1>1?'s':'')+'</div>';
-        if(c2>0) badges+='<div class="bb-court-badge">Court 2 &mdash; '+c2+' hr'+(c2>1?'s':'')+'</div>';
+        var cc = courtCounts(slots);
+        Object.keys(cc).sort().forEach(function(k) { badges += '<div class="bb-court-badge">' + esc(k) + ' &mdash; ' + cc[k] + ' hr' + (cc[k] > 1 ? 's' : '') + '</div>'; });
         document.getElementById('courtBadges').innerHTML = badges;
         var summary = '<strong>Selected time slots</strong>';
         slots.forEach(function(s) { summary += s + '<br>'; });
