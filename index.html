@@ -196,6 +196,12 @@
       .cmb-res.blue  { background:#eef3fb; border:1px solid #9db7e0; display:block; }
       .cmb-res.green { background:#e8f4ea; border:1px solid #1e6b34; display:block; }
       .cmb-res.gray  { background:#eeeeee; border:1px solid #bbbbbb; display:block; }
+      .cmb-link { background:none; border:none; color:#D94A00; font-weight:700; font-size:13px; cursor:pointer; padding:10px 0 0; text-decoration:underline; }
+      .cmb-find { display:none; margin-top:12px; padding-top:12px; border-top:1px dashed #d9d9d9; }
+      .cmb-item { background:#fff; border:1px solid #d9d9d9; border-radius:10px; padding:10px 12px; margin-top:8px; font-size:13px; line-height:1.5; }
+      .cmb-item code { font-weight:700; font-size:14px; }
+      .cmb-mini { background:#111; color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:700; padding:6px 10px; cursor:pointer; margin-top:6px; }
+      .bb-copy { background:#111; color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:700; padding:6px 12px; cursor:pointer; margin-bottom:6px; }
       @media (max-width: 640px) { .cmb-row { grid-template-columns:1fr; } }
       .bb-hold { background:#fff3ea; border:1px solid #FC5600; color:#111; border-radius:8px; padding:10px 12px; font-size:13px; margin:12px 0 4px; text-align:center; }
       .bb-hold strong { color:#D94A00; }
@@ -459,6 +465,15 @@
           <button class="bb-confirm-btn" id="cmbBtn" style="height:44px;padding:0 18px;">Check status</button>
         </div>
         <div class="cmb-res" id="cmbRes"></div>
+        <button class="cmb-link" id="cmbForgot" type="button">Forgot your Booking ID?</button>
+        <div class="cmb-find" id="cmbFind">
+          <div class="cmb-row">
+            <div><label class="bb-field-label" for="cmfName">Full name on the booking</label><input class="bb-input" id="cmfName" type="text" autocomplete="off" /></div>
+            <div><label class="bb-field-label" for="cmfPhone">Phone number</label><input class="bb-input" id="cmfPhone" type="tel" autocomplete="off" /></div>
+            <button class="bb-confirm-btn" id="cmfBtn" style="height:44px;padding:0 18px;">Find my booking</button>
+          </div>
+          <div id="cmfRes"></div>
+        </div>
       </section>
     </main>
 
@@ -509,7 +524,9 @@
             <div class="bb-success-icon">&#10003;</div>
             <div class="bb-success-title" id="successTitle">Booking confirmed!</div>
             <p class="bb-success-sub">Your booking ID</p>
-            <div class="bb-booking-id" id="successId">BB-XXXXXXXX-000</div>
+            <div class="bb-booking-id" id="successId">SU-XXXXXXXX-000</div>
+            <button class="bb-copy" id="copyIdBtn" type="button">Copy ID</button>
+            <p class="bb-gcash-note" style="margin-top:0;">Save your Booking ID. You can use it to check your booking later.</p>
             <div class="bb-hold" id="holdNotice" style="display:none;"></div>
             <div class="bb-gcash-box" id="gcashPayBox">
               <div class="bb-gcash-title">Pay now via GCash</div>
@@ -1069,12 +1086,13 @@
         document.getElementById('stepSuccess').style.display='block';
         document.getElementById('successId').textContent=r.bookingId;
         var isGcash = r.paymentMethod === 'GCash';
-        lastBooking = { id: r.bookingId, phone: document.getElementById('fPhone').value.trim() };
+        lastBooking = { id: r.bookingId, phone: (r.phone || document.getElementById('fPhone').value).trim() };
+        if (isGcash && !r.resumed) { try { localStorage.setItem('suPending', JSON.stringify({ id: r.bookingId, phone: lastBooking.phone })); } catch(e) {} }
         document.getElementById('successTitle').textContent = isGcash ? 'Slot reserved!' : 'Booking confirmed!';
         var hold = document.getElementById('holdNotice'); hold.className = 'bb-hold';
         if (holdTimer) { clearInterval(holdTimer); holdTimer = null; }
         if (isGcash) {
-          var endAt = Date.now() + (r.holdMinutes || 30) * 60000;
+          var endAt = Date.now() + (r.holdMinutes != null ? r.holdMinutes : 30) * 60000;
           var tick = function() {
             var left = Math.max(0, endAt - Date.now());
             var m = Math.floor(left / 60000), sec = Math.floor((left % 60000) / 1000);
@@ -1197,7 +1215,7 @@
         var det = slotsHtml(r.slots) + '<br>&#8369;' + r.total;
         if (r.state === 'paid')      return { cls: 'green', html: '<b>&#10003; Paid &mdash; confirmed</b>' + det + '<br>See you at the court!' };
         if (r.state === 'verifying') return { cls: 'blue',  html: '<b>Proof received</b>Thanks! We are verifying your GCash payment. This usually takes a few minutes.<br>' + det };
-        if (r.state === 'awaiting')  return { cls: 'amber', html: '<b>Awaiting payment</b>Your slot is held for about ' + r.minutesLeft + ' more minute' + (r.minutesLeft === 1 ? '' : 's') + '. Send GCash payment and submit your proof to keep it.<br>' + det };
+        if (r.state === 'awaiting')  return { cls: 'amber', html: '<b>Awaiting payment</b>Your slot is held for about ' + r.minutesLeft + ' more minute' + (r.minutesLeft === 1 ? '' : 's') + '. Send GCash payment and submit your proof to keep it.<br>' + det + '<br><button class="bb-confirm-btn" id="cmbPayBtn" style="margin-top:10px;width:100%;">Pay now / send proof</button>' };
         if (r.state === 'released')  return { cls: 'gray',  html: '<b>Booking released</b>This booking was cancelled or the payment hold ran out. You can book again anytime.' };
         return { cls: 'amber', html: '<b>Reserved</b>Please pay on arrival.<br>' + det };
       }
@@ -1211,12 +1229,67 @@
           btn.disabled = false; btn.textContent = 'Check status';
           if (!r.found) { res.className = 'cmb-res gray'; res.innerHTML = esc(r.message || 'Booking not found.'); return; }
           var v = statusView(r); res.className = 'cmb-res ' + v.cls; res.innerHTML = v.html;
+          var payBtn = document.getElementById('cmbPayBtn');
+          if (payBtn) payBtn.addEventListener('click', function() {
+            document.getElementById('overlay').classList.add('open');
+            showSuccess({ bookingId: r.bookingId, phone: phone, paymentMethod: 'GCash', total: r.total,
+              gcashNumber: r.gcashNumber, qrImageUrl: r.qrImageUrl, contactNumber: r.contactNumber,
+              holdMinutes: r.minutesLeft, resumed: true });
+          });
+          if (r.state === 'paid' || r.state === 'released') { try { localStorage.removeItem('suPending'); } catch(e) {} }
         }, function() {
           btn.disabled = false; btn.textContent = 'Check status';
           res.className = 'cmb-res gray'; res.innerHTML = 'Could not check right now. Please try again.';
         });
       }
       document.getElementById('cmbBtn').addEventListener('click', checkMyBooking);
+
+      var STATE_LABEL = { paid: 'Paid', verifying: 'Proof received', awaiting: 'Awaiting payment', reserved: 'Reserved', released: 'Released' };
+      document.getElementById('cmbForgot').addEventListener('click', function() {
+        var box = document.getElementById('cmbFind');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+      });
+      document.getElementById('cmfBtn').addEventListener('click', function() {
+        var name = document.getElementById('cmfName').value.trim();
+        var phone = document.getElementById('cmfPhone').value.trim();
+        var out = document.getElementById('cmfRes'), btn = document.getElementById('cmfBtn');
+        if (!name || !phone) { out.innerHTML = '<div class="cmb-item">Please enter your name and phone number.</div>'; return; }
+        btn.disabled = true; btn.textContent = 'Searching...';
+        gasCall('findMyBookings', { name: name, phone: phone }, function(r) {
+          btn.disabled = false; btn.textContent = 'Find my booking';
+          if (!r.found) { out.innerHTML = '<div class="cmb-item">' + esc(r.message || 'No bookings found.') + '</div>'; return; }
+          out.innerHTML = r.bookings.map(function(b, i) {
+            return '<div class="cmb-item"><code>' + esc(b.bookingId) + '</code> &middot; ' + esc(STATE_LABEL[b.state] || '') + '<br>' + slotsHtml(b.slots) +
+              '<br><button class="cmb-mini" data-i="' + i + '">Use this ID</button></div>';
+          }).join('');
+          out.querySelectorAll('.cmb-mini').forEach(function(el) {
+            el.addEventListener('click', function() {
+              var b = r.bookings[Number(el.dataset.i)];
+              document.getElementById('cmbId').value = b.bookingId;
+              document.getElementById('cmbPhone').value = phone;
+              checkMyBooking();
+              document.getElementById('cmbId').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+          });
+        }, function() {
+          btn.disabled = false; btn.textContent = 'Find my booking';
+          out.innerHTML = '<div class="cmb-item">Could not search right now. Please try again.</div>';
+        });
+      });
+      document.getElementById('copyIdBtn').addEventListener('click', function() {
+        var id = document.getElementById('successId').textContent, b = this;
+        var done = function() { b.textContent = 'Copied!'; setTimeout(function() { b.textContent = 'Copy ID'; }, 1500); };
+        try { navigator.clipboard.writeText(id).then(done, done); } catch(e) { done(); }
+      });
+      (function() {
+        try {
+          var saved = JSON.parse(localStorage.getItem('suPending') || 'null');
+          if (saved && saved.id) {
+            document.getElementById('cmbId').value = saved.id;
+            document.getElementById('cmbPhone').value = saved.phone || '';
+          }
+        } catch(e) {}
+      })();
 
       var pollTimer = null;
       function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
