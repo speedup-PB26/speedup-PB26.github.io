@@ -48,6 +48,7 @@
       .bb-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; justify-content: center; }
       .bb-pill { padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
       .pill-avail  { background: #111111; color: #ffffff; }
+      .pill-held { background: #f2b37c; color: #111111; border: 2px dashed #FC5600; }
       .pill-booked { background: #8a8a8a; color: #ffffff; }
       .pill-closed { background: #d9d9d9; color: #666666; }
       .pill-sel    { background: #FC5600; color: #ffffff; border: 1.5px solid #111111; }
@@ -89,6 +90,7 @@
       .slot-avail    { background: #111111; color: #ffffff; cursor: pointer; }
       .slot-avail:hover { opacity: 0.88; transform: scale(1.03); }
       .slot-booked   { background: #8a8a8a; color: #ffffff; cursor: default; }
+      .slot-held     { background: #f2b37c; color: #111111; border: 2px dashed #FC5600; cursor: default; }
       .slot-closed   { background: #d9d9d9; color: #777777; cursor: default; }
       .slot-selected { background: #FC5600 !important; color: #ffffff !important; outline: 2px solid #111111; outline-offset: -2px; cursor: pointer; }
       .slot-selected:hover { opacity: 0.9; transform: scale(1.02); }
@@ -114,6 +116,7 @@
       .adv-slot-avail    { background: #111111; color: #ffffff; }
       .adv-slot-avail:hover { opacity: 0.88; transform: scale(1.02); }
       .adv-slot-booked   { background: #8a8a8a; color: #ffffff; cursor: default; }
+      .adv-slot-held     { background: #f2b37c; color: #111111; border: 2px dashed #FC5600; cursor: default; }
       .adv-slot-selected { background: #FC5600 !important; color: #ffffff !important; outline: 2px solid #111111; outline-offset: -2px; }
       .adv-slot-sub      { display: block; font-size: 10px; font-weight: 500; margin-top: 2px; opacity: 0.85; }
       .adv-empty { text-align: center; padding: 24px; color: #6b6b6b; font-size: 14px; font-style: italic; }
@@ -184,11 +187,24 @@
       .bb-gcash-number  { font-size: 22px; font-weight: 700; color: #111111; letter-spacing: 0.06em; margin-bottom: 4px; font-family: 'EB Garamond', Georgia, serif; }
       .bb-amount-due    { font-family: 'EB Garamond', Georgia, serif; font-size: 32px; font-weight: 700; color: #111111; margin: 6px 0 14px; }
       .bb-gcash-qr      { width: 160px; height: 160px; border-radius: 8px; object-fit: contain; background: white; padding: 6px; display: block; margin: 0 auto 12px; }
+      .cmb { background:#f5f5f5; border:1px solid #d9d9d9; border-radius:14px; padding:18px; margin:18px 0; }
+      .cmb-title { font-size:15px; font-weight:700; margin-bottom:12px; }
+      .cmb-row { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+      .cmb-res { border-radius:10px; padding:14px; margin-top:14px; font-size:14px; line-height:1.5; display:none; }
+      .cmb-res b { display:block; font-size:16px; margin-bottom:4px; }
+      .cmb-res.amber { background:#fff3ea; border:1px solid #FC5600; display:block; }
+      .cmb-res.blue  { background:#eef3fb; border:1px solid #9db7e0; display:block; }
+      .cmb-res.green { background:#e8f4ea; border:1px solid #1e6b34; display:block; }
+      .cmb-res.gray  { background:#eeeeee; border:1px solid #bbbbbb; display:block; }
+      @media (max-width: 640px) { .cmb-row { grid-template-columns:1fr; } }
       .bb-hold { background:#fff3ea; border:1px solid #FC5600; color:#111; border-radius:8px; padding:10px 12px; font-size:13px; margin:12px 0 4px; text-align:center; }
       .bb-hold strong { color:#D94A00; }
       .bb-proof { text-align:left; margin-top:16px; padding-top:14px; border-top:1px dashed #d9d9d9; }
       .bb-proof-title { font-size:14px; font-weight:700; margin-bottom:10px; }
       .bb-proof input[type=file] { width:100%; font-size:14px; }
+      .bb-hold.g { background:#e8f4ea; border-color:#1e6b34; text-align:left; }
+      .bb-spin { display:inline-block; width:12px; height:12px; border:3px solid #ddd; border-top-color:#FC5600; border-radius:50%; vertical-align:-2px; margin-right:6px; animation: bbspin 0.8s linear infinite; }
+      @keyframes bbspin { to { transform: rotate(360deg); } }
       .bb-proof-msg { font-size:13px; margin-top:10px; display:none; }
       .bb-proof-msg.err { color:#b3261e; display:block; }
       .bb-proof-msg.ok  { color:#1e6b34; display:block; font-weight:700; }
@@ -301,6 +317,7 @@
     <main class="bb-body">
       <div class="bb-legend">
         <span class="bb-pill pill-avail">Available</span>
+        <span class="bb-pill pill-held">Held</span>
         <span class="bb-pill pill-booked">Booked</span>
         <span class="bb-pill pill-closed">Closed</span>
         <span class="bb-pill pill-sel">Selected</span>
@@ -434,6 +451,15 @@
           </div>
         </div>
       </div>
+          <section class="cmb" id="checkBooking">
+        <div class="cmb-title">Check my booking</div>
+        <div class="cmb-row">
+          <div><label class="bb-field-label" for="cmbId">Booking ID</label><input class="bb-input" id="cmbId" type="text" placeholder="e.g. SU-20261116-042" autocomplete="off" /></div>
+          <div><label class="bb-field-label" for="cmbPhone">Phone number</label><input class="bb-input" id="cmbPhone" type="tel" placeholder="09xx xxx xxxx" autocomplete="off" /></div>
+          <button class="bb-confirm-btn" id="cmbBtn" style="height:44px;padding:0 18px;">Check status</button>
+        </div>
+        <div class="cmb-res" id="cmbRes"></div>
+      </section>
     </main>
 
     <div class="bb-overlay" id="overlay">
@@ -779,6 +805,9 @@
         if (cell.status === 'closed') {
           return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#d9d9d9;font-size:' + fSub + ';color:#777777;font-weight:700;">Closed</div></td>';
         }
+        if (cell.status === 'held') {
+          return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#f2b37c;border:2px dashed #FC5600;box-sizing:border-box;font-size:' + fSlot + ';color:#111111;font-weight:700;"><span>Held</span><span style="font-size:' + fSub + ';opacity:0.85;">Awaiting payment</span></div></td>';
+        }
         if (cell.status === 'booked') {
           return '<td style="' + tdStyle + '"><div style="' + divBase + 'background:#8a8a8a;font-size:' + fSlot + ';color:#ffffff;font-weight:700;"><span>Booked</span><span style="font-size:' + fSub + ';opacity:0.85;">' + esc(cell.label) + '</span></div></td>';
         }
@@ -799,6 +828,7 @@
       function renderCell(cell) {
         if (!cell || !cell.visible) return '<td><div class="bb-slot slot-closed">Closed</div></td>';
         if (cell.status === 'closed') return '<td><div class="bb-slot slot-closed">Closed<span class="bb-slot-sub">' + esc(cell.label||'') + '</span></div></td>';
+        if (cell.status === 'held') return '<td><div class="bb-slot slot-held">Held<span class="bb-slot-sub">Awaiting payment</span></div></td>';
         if (cell.status === 'booked') return '<td><div class="bb-slot slot-booked">Booked<span class="bb-slot-sub">' + esc(cell.label) + '</span></div></td>';
         var sel = selectedSlots.indexOf(cell.slotValue) > -1;
         return '<td><div class="bb-slot ' + (sel ? 'slot-selected' : 'slot-avail') + '" data-slot="' + esc(cell.slotValue) + '" data-day="' + esc(cell.dayKey) + '" data-court="' + esc(cell.court) + '" data-time="' + esc(cell.timeLabel) + '">' +
@@ -923,8 +953,11 @@
             var slotDate = months[dateObj.getMonth()] + ' ' + dateObj.getDate() + ', ' + dateObj.getFullYear();
             var slotValue = slotDate + ' | ' + timeLabel + ' | ' + court;
             var isBooked = data.bookedSlots && data.bookedSlots.indexOf(slotValue) > -1;
+            var isHeld   = data.heldSlots && data.heldSlots.indexOf(slotValue) > -1;
             var isSel    = advSelectedSlots.indexOf(slotValue) > -1;
-            if (isBooked) {
+            if (isHeld) {
+              html += '<div class="adv-slot adv-slot-held">Held<span class="adv-slot-sub">Awaiting payment</span></div>';
+            } else if (isBooked) {
               var bookerName = data.slotNames && data.slotNames[slotValue] ? data.slotNames[slotValue] : '';
               html += '<div class="adv-slot adv-slot-booked">Booked<span class="adv-slot-sub">' + esc(bookerName) + '</span></div>';
             } else {
@@ -1029,7 +1062,7 @@
         document.getElementById('fName').focus();
       }
 
-      function closeModal() { document.getElementById('overlay').classList.remove('open'); if (holdTimer) { clearInterval(holdTimer); holdTimer = null; } }
+      function closeModal() { stopPolling(); document.getElementById('overlay').classList.remove('open'); if (holdTimer) { clearInterval(holdTimer); holdTimer = null; } }
 
       function showSuccess(r) {
         document.getElementById('stepForm').style.display='none';
@@ -1038,7 +1071,7 @@
         var isGcash = r.paymentMethod === 'GCash';
         lastBooking = { id: r.bookingId, phone: document.getElementById('fPhone').value.trim() };
         document.getElementById('successTitle').textContent = isGcash ? 'Slot reserved!' : 'Booking confirmed!';
-        var hold = document.getElementById('holdNotice');
+        var hold = document.getElementById('holdNotice'); hold.className = 'bb-hold';
         if (holdTimer) { clearInterval(holdTimer); holdTimer = null; }
         if (isGcash) {
           var endAt = Date.now() + (r.holdMinutes || 30) * 60000;
@@ -1157,6 +1190,54 @@
       });
       document.getElementById('doneBtn').addEventListener('click', closeModal);
 
+      function slotsHtml(slots) {
+        return (slots || []).map(function(x) { return esc(x.split('|').map(function(t){return t.trim();}).join(' · ')); }).join('<br>');
+      }
+      function statusView(r) {
+        var det = slotsHtml(r.slots) + '<br>&#8369;' + r.total;
+        if (r.state === 'paid')      return { cls: 'green', html: '<b>&#10003; Paid &mdash; confirmed</b>' + det + '<br>See you at the court!' };
+        if (r.state === 'verifying') return { cls: 'blue',  html: '<b>Proof received</b>Thanks! We are verifying your GCash payment. This usually takes a few minutes.<br>' + det };
+        if (r.state === 'awaiting')  return { cls: 'amber', html: '<b>Awaiting payment</b>Your slot is held for about ' + r.minutesLeft + ' more minute' + (r.minutesLeft === 1 ? '' : 's') + '. Send GCash payment and submit your proof to keep it.<br>' + det };
+        if (r.state === 'released')  return { cls: 'gray',  html: '<b>Booking released</b>This booking was cancelled or the payment hold ran out. You can book again anytime.' };
+        return { cls: 'amber', html: '<b>Reserved</b>Please pay on arrival.<br>' + det };
+      }
+      function checkMyBooking() {
+        var id = document.getElementById('cmbId').value.trim();
+        var phone = document.getElementById('cmbPhone').value.trim();
+        var res = document.getElementById('cmbRes'), btn = document.getElementById('cmbBtn');
+        if (!id || !phone) { res.className = 'cmb-res gray'; res.innerHTML = 'Please enter your Booking ID and phone number.'; return; }
+        btn.disabled = true; btn.textContent = 'Checking...';
+        gasCall('getBookingStatus', { bookingId: id, phone: phone }, function(r) {
+          btn.disabled = false; btn.textContent = 'Check status';
+          if (!r.found) { res.className = 'cmb-res gray'; res.innerHTML = esc(r.message || 'Booking not found.'); return; }
+          var v = statusView(r); res.className = 'cmb-res ' + v.cls; res.innerHTML = v.html;
+        }, function() {
+          btn.disabled = false; btn.textContent = 'Check status';
+          res.className = 'cmb-res gray'; res.innerHTML = 'Could not check right now. Please try again.';
+        });
+      }
+      document.getElementById('cmbBtn').addEventListener('click', checkMyBooking);
+
+      var pollTimer = null;
+      function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+      function startPolling() {
+        stopPolling();
+        var until = Date.now() + 30 * 60000;
+        pollTimer = setInterval(function() {
+          if (!lastBooking || Date.now() > until) { stopPolling(); return; }
+          gasCall('getBookingStatus', { bookingId: lastBooking.id, phone: lastBooking.phone }, function(r) {
+            if (r && r.found && r.state === 'paid') {
+              stopPolling();
+              var v = statusView(r);
+              document.getElementById('successTitle').textContent = 'Payment confirmed!';
+              var h = document.getElementById('holdNotice'); h.className = 'bb-hold g'; h.style.display = 'block'; h.innerHTML = v.html;
+              document.getElementById('proofBox').style.display = 'none';
+              loadBoard();
+            }
+          }, function() {});
+        }, 30000);
+      }
+
       function compressImage(file, cb, fail) {
         var reader = new FileReader();
         reader.onerror = function() { fail(); };
@@ -1198,6 +1279,8 @@
               document.getElementById('holdNotice').innerHTML = 'Payment proof received. We will confirm your booking shortly.';
               document.getElementById('proofBox').style.display = 'none';
               document.getElementById('successTitle').textContent = 'Proof received!';
+              document.getElementById('holdNotice').innerHTML = '<span class="bb-spin"></span>Waiting for confirmation. Keep this page open; it updates by itself. You can also use "Check my booking" below.';
+              startPolling();
             } else {
               btn.disabled = false; btn.textContent = 'Submit payment proof';
               setMsg((res && res.error) || 'Could not submit. Please try again.', 'err');
