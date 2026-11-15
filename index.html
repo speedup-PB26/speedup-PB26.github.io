@@ -184,6 +184,14 @@
       .bb-gcash-number  { font-size: 22px; font-weight: 700; color: #111111; letter-spacing: 0.06em; margin-bottom: 4px; font-family: 'EB Garamond', Georgia, serif; }
       .bb-amount-due    { font-family: 'EB Garamond', Georgia, serif; font-size: 32px; font-weight: 700; color: #111111; margin: 6px 0 14px; }
       .bb-gcash-qr      { width: 160px; height: 160px; border-radius: 8px; object-fit: contain; background: white; padding: 6px; display: block; margin: 0 auto 12px; }
+      .bb-hold { background:#fff3ea; border:1px solid #FC5600; color:#111; border-radius:8px; padding:10px 12px; font-size:13px; margin:12px 0 4px; text-align:center; }
+      .bb-hold strong { color:#D94A00; }
+      .bb-proof { text-align:left; margin-top:16px; padding-top:14px; border-top:1px dashed #d9d9d9; }
+      .bb-proof-title { font-size:14px; font-weight:700; margin-bottom:10px; }
+      .bb-proof input[type=file] { width:100%; font-size:14px; }
+      .bb-proof-msg { font-size:13px; margin-top:10px; display:none; }
+      .bb-proof-msg.err { color:#b3261e; display:block; }
+      .bb-proof-msg.ok  { color:#1e6b34; display:block; font-weight:700; }
       .bb-gcash-note    { font-size: 12px; color: #6b6b6b; margin-top: 6px; }
       .bb-done-btn      { width: 100%; background: #FC5600; color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 18px; letter-spacing: 0.04em; transition: background 0.15s; }
       .bb-done-btn:hover { background: #D94A00; }
@@ -473,10 +481,10 @@
         <div id="stepSuccess" style="display:none;">
           <div class="bb-success">
             <div class="bb-success-icon">&#10003;</div>
-            <div class="bb-success-title">Booking confirmed!</div>
+            <div class="bb-success-title" id="successTitle">Booking confirmed!</div>
             <p class="bb-success-sub">Your booking ID</p>
             <div class="bb-booking-id" id="successId">BB-XXXXXXXX-000</div>
-            <p class="bb-success-sub">A confirmation email will be sent to you shortly.</p>
+            <div class="bb-hold" id="holdNotice" style="display:none;"></div>
             <div class="bb-gcash-box" id="gcashPayBox">
               <div class="bb-gcash-title">Pay now via GCash</div>
               <p class="bb-gcash-sub">Send payment to</p>
@@ -485,6 +493,19 @@
               <img class="bb-gcash-qr" id="successQr" src="" alt="GCash QR code" />
               <p class="bb-gcash-note">Include your Booking ID in the GCash message when sending.</p>
               <p class="bb-gcash-note" id="successContact"></p>
+              <div class="bb-proof" id="proofBox">
+                <div class="bb-proof-title">After paying, send your proof</div>
+                <div class="bb-field-group">
+                  <label class="bb-field-label" for="proofRef">GCash reference number</label>
+                  <input class="bb-input" id="proofRef" type="text" inputmode="text" autocomplete="off" placeholder="e.g. 1234567890123" />
+                </div>
+                <div class="bb-field-group">
+                  <label class="bb-field-label" for="proofFile">Screenshot of payment</label>
+                  <input id="proofFile" type="file" accept="image/*" />
+                </div>
+                <button class="bb-confirm-btn" id="proofBtn" style="width:100%;">Submit payment proof</button>
+                <div class="bb-proof-msg" id="proofMsg"></div>
+              </div>
             </div>
             <div class="bb-gcash-box" id="cashPayBox" style="display:none;">
               <div class="bb-gcash-title">&#128181; Pay on Arrival</div>
@@ -509,6 +530,8 @@
       var advSelectedSlots = [];
       var weatherData      = {};
       var currentMode      = 'week';
+      var lastBooking      = null;
+      var holdTimer        = null;
 
       // Environment detection
       var IN_GAS_IFRAME = (window.innerWidth > 600 && screen.width < 600);
@@ -1006,13 +1029,37 @@
         document.getElementById('fName').focus();
       }
 
-      function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+      function closeModal() { document.getElementById('overlay').classList.remove('open'); if (holdTimer) { clearInterval(holdTimer); holdTimer = null; } }
 
       function showSuccess(r) {
         document.getElementById('stepForm').style.display='none';
         document.getElementById('stepSuccess').style.display='block';
         document.getElementById('successId').textContent=r.bookingId;
         var isGcash = r.paymentMethod === 'GCash';
+        lastBooking = { id: r.bookingId, phone: document.getElementById('fPhone').value.trim() };
+        document.getElementById('successTitle').textContent = isGcash ? 'Slot reserved!' : 'Booking confirmed!';
+        var hold = document.getElementById('holdNotice');
+        if (holdTimer) { clearInterval(holdTimer); holdTimer = null; }
+        if (isGcash) {
+          var endAt = Date.now() + (r.holdMinutes || 30) * 60000;
+          var tick = function() {
+            var left = Math.max(0, endAt - Date.now());
+            var m = Math.floor(left / 60000), sec = Math.floor((left % 60000) / 1000);
+            hold.innerHTML = left > 0
+              ? 'Your slot is held for <strong>' + m + ':' + (sec < 10 ? '0' : '') + sec + '</strong>. Pay via GCash and submit your proof below to keep it.'
+              : 'Hold time is over. If you already paid, submit your proof anyway or contact us; otherwise the slot may be released.';
+          };
+          tick(); holdTimer = setInterval(tick, 1000);
+          hold.style.display = 'block';
+          document.getElementById('proofRef').value = '';
+          document.getElementById('proofFile').value = '';
+          var pm = document.getElementById('proofMsg'); pm.className = 'bb-proof-msg'; pm.textContent = '';
+          document.getElementById('proofBox').style.display = 'block';
+          document.getElementById('proofBtn').disabled = false;
+          document.getElementById('proofBtn').textContent = 'Submit payment proof';
+        } else {
+          hold.style.display = 'none';
+        }
         document.getElementById('gcashPayBox').style.display = isGcash ? 'block' : 'none';
         document.getElementById('cashPayBox').style.display  = isGcash ? 'none'  : 'block';
         if (isGcash) {
@@ -1109,6 +1156,63 @@
         else { submitBooking(); }
       });
       document.getElementById('doneBtn').addEventListener('click', closeModal);
+
+      function compressImage(file, cb, fail) {
+        var reader = new FileReader();
+        reader.onerror = function() { fail(); };
+        reader.onload = function() {
+          var img = new Image();
+          img.onerror = function() { fail(); };
+          img.onload = function() {
+            var max = 1280, w = img.width, h = img.height;
+            if (w > max || h > max) { var k = Math.min(max / w, max / h); w = Math.round(w * k); h = Math.round(h * k); }
+            var c = document.createElement('canvas'); c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            cb(c.toDataURL('image/jpeg', 0.8));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function submitProof() {
+        var msg = document.getElementById('proofMsg');
+        var btn = document.getElementById('proofBtn');
+        var ref = document.getElementById('proofRef').value.replace(/\s+/g, '');
+        var file = document.getElementById('proofFile').files[0];
+        var setMsg = function(t, cls) { msg.textContent = t; msg.className = 'bb-proof-msg ' + cls; };
+        if (!lastBooking) { setMsg('Something went wrong. Please refresh and contact us.', 'err'); return; }
+        if (!/^[A-Za-z0-9]{6,20}$/.test(ref)) { setMsg('Please enter your GCash reference number.', 'err'); return; }
+        if (!file) { setMsg('Please attach a screenshot of your payment.', 'err'); return; }
+        btn.disabled = true; btn.textContent = 'Uploading...'; msg.className = 'bb-proof-msg';
+        compressImage(file, function(dataUrl) {
+          fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'submitPayment', bookingId: lastBooking.id, phone: lastBooking.phone, ref: ref, image: dataUrl })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(res) {
+            if (res && res.success) {
+              if (holdTimer) { clearInterval(holdTimer); holdTimer = null; }
+              document.getElementById('holdNotice').innerHTML = 'Payment proof received. We will confirm your booking shortly.';
+              document.getElementById('proofBox').style.display = 'none';
+              document.getElementById('successTitle').textContent = 'Proof received!';
+            } else {
+              btn.disabled = false; btn.textContent = 'Submit payment proof';
+              setMsg((res && res.error) || 'Could not submit. Please try again.', 'err');
+            }
+          })
+          .catch(function() {
+            btn.disabled = false; btn.textContent = 'Submit payment proof';
+            setMsg('Network problem. Please try again.', 'err');
+          });
+        }, function() {
+          btn.disabled = false; btn.textContent = 'Submit payment proof';
+          setMsg('Could not read that image. Please try another screenshot.', 'err');
+        });
+      }
+      document.getElementById('proofBtn').addEventListener('click', submitProof);
       document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
       document.getElementById('advDateInput').addEventListener('keydown', function(e){ if(e.key==='Enter') checkAdvanceDate(); });
 
